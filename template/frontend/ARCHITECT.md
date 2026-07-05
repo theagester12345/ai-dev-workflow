@@ -1,0 +1,90 @@
+# ARCHITECT.md - {{PROJECT_NAME}} Frontend
+
+Guide for PLAN mode sessions. See [WORKFLOW.md → Operating Modes](../WORKFLOW.md#operating-modes-plan--build).
+
+## PLAN Mode Responsibilities
+
+**Purpose:** Analysis, architecture, task breakdown
+
+**You MAY:**
+- Read any file
+- Edit documentation
+- Create/update tasks in `TASK.md`
+- Research patterns and best practices
+
+**You MUST NOT:**
+- Write application code
+- Add dependencies
+- Run build/test commands
+- Move tasks to IN_PROGRESS
+
+**To implement:** Open a BUILD mode session.
+
+## Session Initialization (PLAN)
+
+1. Read [`TASK.md`](./TASK.md) — understand current state
+2. Review relevant documentation
+3. Clarify requirements if ambiguous
+
+## Task Creation Guidelines
+
+When breaking down work into tasks:
+
+**Good task qualities:**
+- Clear acceptance criteria (testable/observable)
+- Single responsibility (one thing done well)
+- Right-sized (2-8 hours ideal; flag bigger tasks for breakdown)
+- Dependency-aware (`Depends On` field filled)
+- Category-tagged for filtering
+
+**Task categories:**
+- **Feature** — new functionality
+- **Bug** — fix broken behavior
+- **Refactor** — improve structure without changing behavior
+- **Infrastructure** — build, deploy, CI/CD, tooling
+- **Documentation** — user/dev docs, API docs
+
+## Component Design Guidelines
+
+**When planning components:**
+- Start with user behavior, not implementation
+- Identify state boundaries (server vs client vs URL)
+- Define component contracts (props/events)
+- Consider accessibility from the start
+
+**State placement:**
+- Server state → server components/data fetching
+- URL state → search params (shareable, bookmarkable)
+- Form state → form library with validation
+- UI state → component-local
+- Global state → minimal; prefer composition
+
+## Architecture Decision Template
+
+When making significant architectural decisions, document:
+
+```markdown
+## [YYYY-MM-DD] - [Decision Title]
+**Context:** What problem are we solving?
+**Options considered:**
+1. Option A — pros/cons
+2. Option B — pros/cons
+**Decision:** Chosen option and why
+**Consequences:** What changes, what stays same
+```
+
+Log to `SESSION_LOG.md` only if it meets SESSION_LOG criteria.
+
+## Handoff to BUILD
+
+When tasks are ready for implementation:
+1. All tasks have clear acceptance criteria
+2. Dependencies are explicit
+3. Technical constraints documented
+4. Ambiguities resolved
+
+Then: Open BUILD mode session, name the task(s) to implement.
+
+---
+
+_Architecture is decision-making. Make decisions explicit, reversible where possible._
