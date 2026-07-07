@@ -90,4 +90,17 @@ After architecture/structure changes:
 
 ---
 
+## Secrets & environment
+
+Secrets must never enter agent context. The contract is `.env.example` (variable **names**); the real `.env` (values) is off-limits.
+
+- **Read `.env.example`, never `.env`/`.env.*` values.** Need a var that's missing? Add its **name** to `.env.example` and ask the user to fill `.env`.
+- **Never print, paste, echo, or commit a secret value** — refer to it by variable name.
+- **Run, don't read.** Commands load env at runtime, so you never open the file to make them work.
+- **Best of all, keep secrets out of a readable file** — injected env vars, an OS keychain, or a secrets manager. `.env` is a dev-only convenience, **untrusted-by-agents**.
+
+Enforcement is portable, not tool-specific: `.env`/`.env.local`/`.env.*.local` are gitignored, and a dependency-free **pre-commit hook** (`.githooks/pre-commit`, wired via `git config core.hooksPath .githooks`) blocks committing a real env file or an obvious secret — on any `git commit`, whichever agent made the change. For deeper scanning, add [gitleaks](https://github.com/gitleaks/gitleaks).
+
+---
+
 _Shared spine. Change a rule here once — it applies everywhere._

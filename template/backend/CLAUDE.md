@@ -108,7 +108,7 @@ In a monorepo:
 
 - **Profiles:** local (dev), dev (staging), prod
 - **Migrations:** managed by migration tool; ORM in validate mode
-- **Secrets:** from env vars; never commit; `.env.example` in repo
+- **Secrets:** from env vars; never commit; `.env.example` in repo. **Agents read `.env.example` (names), never `.env` values** — see [WORKFLOW.md → Secrets & environment](../WORKFLOW.md#secrets--environment).
 
 ## Testing
 

@@ -1,0 +1,38 @@
+#!/usr/bin/env sh
+#
+# Portable secret guard — part of the AI Dev Workflow "Secrets & environment" rule.
+# Dependency-free and tool-agnostic: it runs on ANY `git commit`, regardless of which
+# agent or editor staged the change. Wired via `git config core.hooksPath .githooks`.
+#
+# Blocks: committing a real .env file, or a staged change that looks like a secret.
+# Bypass (false positive): git commit --no-verify
+# For thorough scanning, add gitleaks: https://github.com/gitleaks/gitleaks
+#
+set -eu
+
+fail=0
+staged=$(git diff --cached --name-only --diff-filter=AM)
+
+# 1) Never commit a real env file. Allow templates: .env.example / .sample / .template / .dist
+bad=$(printf '%s\n' "$staged" \
+  | grep -E '(^|/)\.env(\.[^/]+)?$' \
+  | grep -vE '\.(example|sample|template|dist)$' || true)
+if [ -n "$bad" ]; then
+  echo "✖ refusing to commit env file(s) — secrets belong in a gitignored .env; commit a template (.env.example) instead:"
+  printf '    %s\n' $bad
+  fail=1
+fi
+
+# 2) High-signal secret patterns in staged additions (private keys, cloud keys, common tokens)
+if git diff --cached -U0 --no-color \
+   | grep -nE '(-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|xox[baprs]-[0-9A-Za-z-]{10,}|gh[pousr]_[0-9A-Za-z]{20,}|sk-[A-Za-z0-9]{20,})' >/dev/null 2>&1; then
+  echo "✖ a staged change looks like it contains a secret (private key / cloud key / API token)."
+  fail=1
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo ""
+  echo "Blocked by .githooks/pre-commit (secret guard). If this is a false positive: git commit --no-verify"
+  exit 1
+fi
+exit 0

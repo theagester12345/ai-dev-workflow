@@ -294,11 +294,27 @@ done
 # substitute + banner-strip every freshly-copied file (never touches existing files)
 for rel in "${COPIED[@]:-}"; do [ -n "$rel" ] && process_file "$rel"; done
 
-# ---- .gitignore (mockups) ----
+# ---- .gitignore (mockups + secrets) ----
 gi="$TARGET/.gitignore"; touch "$gi"
 add_ignore() { grep -qxF "$1" "$gi" 2>/dev/null || echo "$1" >> "$gi"; }
 case " $WORKSPACES " in *" product "*) add_ignore "product/mockups/";; esac
 case " $WORKSPACES " in *" frontend "*) add_ignore "frontend/mockups/";; esac
+# Secrets hygiene: never commit real env files; commit a .env.example template instead.
+add_ignore ".env"
+add_ignore ".env.local"
+add_ignore ".env.*.local"
+
+# ---- pre-commit secret guard (dependency-free, tool-agnostic) ----
+# Portable enforcement of the WORKFLOW "Secrets & environment" rule — fires on any
+# `git commit` regardless of which agent made the change.
+if [ -f "$TEMPLATE_DIR/.githooks/pre-commit" ]; then
+  mkdir -p "$TARGET/.githooks"
+  copy_if_missing "$TEMPLATE_DIR/.githooks/pre-commit" "$TARGET/.githooks/pre-commit"
+  chmod +x "$TARGET/.githooks/pre-commit" 2>/dev/null || true
+  if git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1; then
+    git -C "$TARGET" config core.hooksPath .githooks 2>/dev/null || true
+  fi
+fi
 
 # ---- stack detection (best-effort; agent confirms) ----
 detect_stack() {

@@ -101,6 +101,8 @@ const res = await apiFetch("/users/me");
 NEXT_PUBLIC_API_URL=<backend host>  # host only; version in API_BASE constant
 ```
 
+**Agents read `.env.example` (names), never `.env` values** — see [WORKFLOW.md → Secrets & environment](../WORKFLOW.md#secrets--environment). Never commit `.env`/`.env.local`.
+
 ## Operating Modes
 
 **Canonical:** [`../WORKFLOW.md` → Operating Modes](../WORKFLOW.md#operating-modes-plan--build).

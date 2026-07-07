@@ -18,13 +18,14 @@ Guide for PLAN mode sessions. See [WORKFLOW.md → Operating Modes](../WORKFLOW.
 - Run build/test commands
 - Move tasks to IN_PROGRESS
 
-**To implement:** Open a BUILD mode session.
+**To implement:** Open a BUILD mode session. If asked to write code, install, or run builds while in PLAN, **refuse and say a BUILD session is needed** — never silently switch modes.
 
 ## Session Initialization (PLAN)
 
-1. Read [`TASK.md`](./TASK.md) — understand current state
-2. Review relevant documentation
-3. Clarify requirements if ambiguous
+1. Read [`../WORKFLOW.md`](../WORKFLOW.md) — the shared operating conventions that **govern this session** (the PLAN/BUILD boundary and its MUST-NOTs, task-sync, session-log). A link elsewhere is not enough — load the file so the rules are in context.
+2. Read [`TASK.md`](./TASK.md) — understand current state
+3. Review relevant documentation (`CLAUDE.md`, `SESSION_LOG.md`)
+4. Clarify requirements if ambiguous
 
 ## Task Creation Guidelines
 
