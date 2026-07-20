@@ -90,7 +90,7 @@ Every session declares one mode.
 
 | Mode | Purpose | Actions |
 |------|---------|---------|
-| PLAN | Design, architecture, task breakdown | Writes to `TASK.md`; reads everything; no code changes |
+| SPEC | Design, architecture, task breakdown | Writes to `TASK.md`; reads everything; no code changes |
 | BUILD | Implementation | Code changes; moves tasks from TODO → COMPLETED |
 
 ## Cleanup Checklist

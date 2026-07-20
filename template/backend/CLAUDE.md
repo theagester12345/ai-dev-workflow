@@ -12,7 +12,7 @@ In a monorepo:
 
 ## Communication Convention
 
-**Canonical:** [`../WORKFLOW.md` → Communication](../WORKFLOW.md#communication-default-concise). Default concise; `SA`/`DA` override.
+**Canonical:** [`../WORKFLOW.md` → Communication](../WORKFLOW.md#communication-short-by-default). Short by default; `DA` = force detail (short is the default).
 
 ## Task Tracker
 
@@ -121,7 +121,7 @@ Run: `{{TEST_CMD}}`
 
 ## Operating Modes
 
-**Canonical:** [`../WORKFLOW.md` → Operating Modes](../WORKFLOW.md#operating-modes-plan--build).
+**Canonical:** [`../WORKFLOW.md` → Operating Modes](../WORKFLOW.md#operating-modes-spec--build).
 
 ## Task Synchronization Protocol
 

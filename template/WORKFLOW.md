@@ -2,20 +2,22 @@
 
 The single source for conventions that apply across all workspaces. Each workspace's `CLAUDE.md` references this file instead of duplicating rules.
 
-## Communication (default concise)
+## Communication (short by default)
 
-**Default = concise.** Lead with the answer; keep it skimmable.
+**Short by default.** Lead with the answer. The user should never have to ask for brevity — if they do, the default has already failed.
 
-- **SA** = short answer (force brevity)
-- **DA** = detailed answer (force depth)
+- Answer the question asked, not the adjacent ones; unrequested findings go in the docs (`TASK.md`, `SESSION_LOG.md`), not the reply.
+- Report outcomes, not the process the tool calls already show.
+- No unrequested structure — prose over headers/tables for non-enumerable content.
+- Auto-expand ONLY for high-stakes decisions (architecture, trade-offs, multi-step plans) — a narrow exception, not a licence to expand by default.
 
-Auto-expand only for high-stakes decisions (architecture, trade-offs, multi-step plans).
+- **DA** = force a detailed answer. There is **no** force-short shorthand — short *is* the default, so one would be redundant; don't reintroduce it.
 
-## Operating Modes (PLAN / BUILD)
+## Operating Modes (SPEC / BUILD)
 
-Every session runs in ONE mode, declared at session start.
+Every session runs in ONE mode, declared at session start. If none is declared, assume **SPEC**.
 
-### PLAN Mode (default)
+### SPEC Mode (default)
 - **Purpose:** Analysis, design, task breakdown
 - **Output:** Tasks written to `TASK.md`
 - **May:** Read anything, edit docs, create tasks
@@ -23,9 +25,13 @@ Every session runs in ONE mode, declared at session start.
 
 ### BUILD Mode
 - **Purpose:** Implementation
-- **Input:** User names the task(s) to implement
+- **Input:** User names the task(s) to implement — BUILD never picks its own
 - **Output:** Code changes, tests, task moved to COMPLETED
 - **Process:** Read whole board → recommend order if needed → implement → verify → mark done
+
+**An approved plan authorizes the plan, not the build.** However a SPEC is signed off — a verbal "looks good," an approved plan document, or an editor's/agent's built-in "plan mode" approval — that approves the **analysis**, not implementation. BUILD still requires the user to **name the task**. Don't treat plan-approval, mode-exit, or an enthusiastic reply as the go-ahead to write code. (The mode is named **SPEC**, not "PLAN", precisely so it can't be confused with an editor's built-in *plan mode*.)
+
+> **Version control is user-gated — never autonomous.** `git commit` and `git push` are **NOT** part of the BUILD flow. Don't commit or push on your own initiative — **not** after a task is COMPLETED, **not** after tests/build go green. Completing a task ≠ permission to commit. Stop at a clean, verified working tree and **wait for the user's explicit command** to commit; pushing is a separate explicit command again. (Applies in every mode.)
 
 ## Task Synchronization Protocol
 

@@ -58,7 +58,7 @@ Use this guide when adding the workflow to a project that already has code and d
 - [ ] All workspaces have CLAUDE.md with operating modes
 - [ ] TASK.md exists with canonical format
 - [ ] SESSION_LOG.md exists with protocol
-- [ ] ARCHITECT.md exists for PLAN mode guidance
+- [ ] ARCHITECT.md exists for SPEC mode guidance
 - [ ] WORKFLOW.md added and referenced
 - [ ] No existing content was overwritten
 - [ ] All file moves were approved
