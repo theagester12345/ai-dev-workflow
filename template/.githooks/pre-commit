@@ -1,12 +1,15 @@
 #!/usr/bin/env sh
 #
-# Portable secret guard — part of the AI Dev Workflow "Secrets & environment" rule.
-# Dependency-free and tool-agnostic: it runs on ANY `git commit`, regardless of which
-# agent or editor staged the change. Wired via `git config core.hooksPath .githooks`.
+# Portable git guards — AI Dev Workflow. Dependency-free and tool-agnostic:
+# runs on ANY `git commit` via `git config core.hooksPath .githooks`.
 #
-# Blocks: committing a real .env file, or a staged change that looks like a secret.
+# 1) Secret guard: block real .env files / high-signal secret patterns.
+# 2) AGENTS.md Binding sync: if WORKFLOW.md / CLAUDE.md / AGENTS.md is staged,
+#    re-emit AGENTS.md from sources and stage the result (principle 3 — no relying
+#    on humans remembering to run emit-agents.sh).
+#
 # Bypass (false positive): git commit --no-verify
-# For thorough scanning, add gitleaks: https://github.com/gitleaks/gitleaks
+# For thorough secret scanning, add gitleaks: https://github.com/gitleaks/gitleaks
 #
 set -eu
 
@@ -30,9 +33,37 @@ if git diff --cached -U0 --no-color \
   fail=1
 fi
 
+# 3) Keep AGENTS.md Bindings in sync with authored sources (WORKFLOW.md / CLAUDE.md)
+emit_needed=0
+printf '%s\n' "$staged" | grep -Eq '^WORKFLOW\.md$' && emit_needed=1
+printf '%s\n' "$staged" | grep -Eq '(^|/)CLAUDE\.md$' && emit_needed=1
+printf '%s\n' "$staged" | grep -Eq '(^|/)AGENTS\.md$' && emit_needed=1
+
+if [ "$emit_needed" -eq 1 ]; then
+  emit_script=adapters/agents/emit-agents.sh
+  if [ ! -f "$emit_script" ]; then
+    echo "✖ staged WORKFLOW.md / CLAUDE.md / AGENTS.md but $emit_script is missing."
+    echo "  Copy it from the workflow template (adapters/agents/) or re-run scaffold."
+    fail=1
+  else
+    echo "▶ pre-commit: re-emitting AGENTS.md from authored sources…"
+    if ! bash "$emit_script" --force; then
+      echo "✖ emit-agents.sh failed — fix the emit error before committing."
+      fail=1
+    else
+      # Include regenerated Bindings in this commit (deterministic; never hand-edited)
+      if [ -f AGENTS.md ]; then git add -- AGENTS.md; fi
+      for agents in */AGENTS.md; do
+        [ -f "$agents" ] || continue
+        git add -- "$agents"
+      done
+    fi
+  fi
+fi
+
 if [ "$fail" -ne 0 ]; then
   echo ""
-  echo "Blocked by .githooks/pre-commit (secret guard). If this is a false positive: git commit --no-verify"
+  echo "Blocked by .githooks/pre-commit. If this is a false positive: git commit --no-verify"
   exit 1
 fi
 exit 0

@@ -4,11 +4,11 @@ This project was scaffolded with a stack-agnostic workflow template. Your job is
 
 ## Procedure
 
-1. **Determine the stack** — If existing code, detect from build files. If greenfield, ask the user for: language, framework, build tool, test framework, database, auth.
+1. **Determine the stack** — If existing code, detect from build files. If greenfield, ask the user for: language, framework, build tool, test framework, database, auth. Record the resolved values in [`STACK.md`](./STACK.md).
 
 2. **Replace all `{{PLACEHOLDERS}}`** with concrete values (see registry below). Verify with: `grep -rn "{{" .`
 
-3. **Translate principles to stack-specific rules** using the Principle → Binding table below. Keep the intent; change the mechanism.
+3. **Translate principles to stack-specific rules** using the Principle → Binding table below. Keep the intent; change the mechanism. Then re-emit `AGENTS.md` (`bash adapters/agents/emit-agents.sh --force`) so non-Claude hosts see the translated rules — or rely on `.githooks/pre-commit` on the next commit.
 
 4. **Remove this file** when done.
 

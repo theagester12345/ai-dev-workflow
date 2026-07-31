@@ -8,6 +8,7 @@
 #     (SIDE, SIDE_DIR, OTHER_SIDE) — so the agent doesn't have to
 #   - strip the `⚠️ STARTER` banner from any file it fully resolves
 #   - list the loose DOCS that need classifying (it never touches source code)
+#   - emit the AGENTS.md tree (Binding of WORKFLOW.md + each side's CLAUDE.md)
 #   - write WORKORDER.md
 # The AGENT then does only the SEMANTIC remainder: translate principles in the
 # engineering CLAUDE.md files, classify & move docs (with your approval), and
@@ -15,7 +16,7 @@
 #
 set -euo pipefail
 
-ALL_WS="product backend frontend back-office infra"
+ALL_WS="backend frontend"
 ENG_WS="backend frontend"
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)   # bin/
 MASTER_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
@@ -38,7 +39,7 @@ Usage:
   scaffold.sh adopt     [options]   # existing project (never overwrites your files)
 
 Options:
-  --workspaces a,b,c     subset of: product backend frontend back-office infra (default: all)
+  --workspaces a,b,c     subset of: backend frontend (default: all)
   --target DIR           project to scaffold into (default: current dir)
   --set KEY=VALUE        fill a placeholder. Global, or per-workspace with WS.KEY=VALUE
                          e.g. --set PROJECT_NAME=Acme --set backend.LANGUAGE=Java
@@ -85,15 +86,6 @@ prompt_placeholders() {
   val=$(prompt_value "Project name" "MyApp")
   [ -n "$val" ] && SET_SPECS+=("PROJECT_NAME=$val")
   
-  case " $WORKSPACES " in
-    *" back-office "*)
-      val=$(prompt_value "Company name" "Acme Inc.")
-      [ -n "$val" ] && SET_SPECS+=("COMPANY_NAME=$val")
-      val=$(prompt_value "Jurisdiction" "Delaware, USA")
-      [ -n "$val" ] && SET_SPECS+=("JURISDICTION=$val")
-      ;;
-  esac
-  
   # Backend
   if [[ " $WORKSPACES " == *" backend "* ]]; then
     echo
@@ -137,15 +129,6 @@ prompt_placeholders() {
     
     val=$(prompt_value "Frontend architect persona name" "Nexus")
     [ -n "$val" ] && SET_SPECS+=("frontend.ARCHITECT_NAME=$val")
-  fi
-  
-  # Product
-  if [[ " $WORKSPACES " == *" product "* ]]; then
-    echo
-    echo "PRODUCT CONFIGURATION"
-    echo "───────────────────────────────────────────────────────────────────────────"
-    val=$(prompt_value "Product Lead persona name" "Atlas")
-    [ -n "$val" ] && SET_SPECS+=("product.ARCHITECT_NAME=$val")
   fi
   
   echo
@@ -206,9 +189,6 @@ auto_sets() {  # $1 = workspace → KEY=VALUE lines the script can derive
   case "$1" in
     backend)  printf 'SIDE=Backend\nSIDE_DIR=backend\n';;
     frontend) printf 'SIDE=Frontend\nSIDE_DIR=frontend\n';;
-    product)  printf 'SIDE=Product\nSIDE_DIR=product\n';;
-    back-office) printf 'SIDE_DIR=back-office\n';;
-    infra)    printf 'SIDE_DIR=infra\n';;
   esac
   if [ "$ENG_COUNT" -ge 2 ]; then
     case "$1" in
@@ -275,10 +255,11 @@ echo "  workspaces: $WORKSPACES"
 copy_if_missing "$TEMPLATE_DIR/STACK.md" "$TARGET/STACK.md"
 copy_if_missing "$TEMPLATE_DIR/BOOTSTRAP.md" "$TARGET/BOOTSTRAP.md"   # Principle→Binding table (both modes)
 copy_if_missing "$TEMPLATE_DIR/WORKFLOW.md" "$TARGET/WORKFLOW.md"                 # shared operating conventions; stays in the project
+copy_if_missing "$TEMPLATE_DIR/REVIEW.md" "$TARGET/REVIEW.md"                     # fallback review procedure
 copy_if_missing "$TEMPLATE_DIR/CONSOLIDATION.md" "$TARGET/CONSOLIDATION.md"       # stays in the project
 copy_if_missing "$TEMPLATE_DIR/WORKFLOW_CHANGELOG.md" "$TARGET/WORKFLOW_CHANGELOG.md"  # upstream log; stays in the project
 if [ "$MODE" = adopt ]; then copy_if_missing "$TEMPLATE_DIR/ADOPT.md" "$TARGET/ADOPT.md"; fi
-# NOTE: CHANGELOG.md + bin/ (scaffold.sh, pull-updates.sh) are MASTER-only — never copied into a project.
+# NOTE: CHANGELOG.md + bin/ are MASTER-only — never copied into a project.
 
 for ws in $WORKSPACES; do
   if [ ! -d "$TEMPLATE_DIR/$ws" ]; then echo "  ! no template for '$ws', skipping"; continue; fi
@@ -297,23 +278,42 @@ for rel in "${COPIED[@]:-}"; do [ -n "$rel" ] && process_file "$rel"; done
 # ---- .gitignore (mockups + secrets) ----
 gi="$TARGET/.gitignore"; touch "$gi"
 add_ignore() { grep -qxF "$1" "$gi" 2>/dev/null || echo "$1" >> "$gi"; }
-case " $WORKSPACES " in *" product "*) add_ignore "product/mockups/";; esac
 case " $WORKSPACES " in *" frontend "*) add_ignore "frontend/mockups/";; esac
 # Secrets hygiene: never commit real env files; commit a .env.example template instead.
 add_ignore ".env"
 add_ignore ".env.local"
 add_ignore ".env.*.local"
 
-# ---- pre-commit secret guard (dependency-free, tool-agnostic) ----
-# Portable enforcement of the WORKFLOW "Secrets & environment" rule — fires on any
-# `git commit` regardless of which agent made the change.
-if [ -f "$TEMPLATE_DIR/.githooks/pre-commit" ]; then
+# ---- git hooks (secret guard + commit-message guards) ----
+# Portable enforcement — fires on any `git commit` regardless of which agent made the change.
+if [ -d "$TEMPLATE_DIR/.githooks" ]; then
   mkdir -p "$TARGET/.githooks"
-  copy_if_missing "$TEMPLATE_DIR/.githooks/pre-commit" "$TARGET/.githooks/pre-commit"
-  chmod +x "$TARGET/.githooks/pre-commit" 2>/dev/null || true
+  while IFS= read -r -d '' hf; do
+    base=$(basename "$hf")
+    copy_if_missing "$hf" "$TARGET/.githooks/$base"
+    chmod +x "$TARGET/.githooks/$base" 2>/dev/null || true
+  done < <(find "$TEMPLATE_DIR/.githooks" -maxdepth 1 -type f -print0)
   if git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1; then
     git -C "$TARGET" config core.hooksPath .githooks 2>/dev/null || true
   fi
+fi
+
+# ---- AGENTS.md tree (Binding emit — one source, compile per tool) ----
+if [ -f "$TARGET/adapters/agents/emit-agents.sh" ]; then
+  chmod +x "$TARGET/adapters/agents/emit-agents.sh" 2>/dev/null || true
+  bash "$TARGET/adapters/agents/emit-agents.sh" --target "$TARGET" || {
+    echo "  ! emit-agents.sh failed — AGENTS.md tree incomplete" >&2
+  }
+elif [ -f "$TEMPLATE_DIR/adapters/agents/emit-agents.sh" ]; then
+  mkdir -p "$TARGET/adapters/agents"
+  copy_if_missing "$TEMPLATE_DIR/adapters/agents/emit-agents.sh" "$TARGET/adapters/agents/emit-agents.sh"
+  copy_if_missing "$TEMPLATE_DIR/adapters/agents/README.md" "$TARGET/adapters/agents/README.md"
+  chmod +x "$TARGET/adapters/agents/emit-agents.sh" 2>/dev/null || true
+  bash "$TARGET/adapters/agents/emit-agents.sh" --target "$TARGET" || {
+    echo "  ! emit-agents.sh failed — AGENTS.md tree incomplete" >&2
+  }
+else
+  echo "  ! adapters/agents/emit-agents.sh missing — skip AGENTS emit" >&2
 fi
 
 # ---- stack detection (best-effort; agent confirms) ----
@@ -339,7 +339,7 @@ candidates() {
   local f base
   while IFS= read -r -d '' f; do
     base=$(basename "$f")
-    case "$base" in README.md|BOOTSTRAP.md|ADOPT.md|STACK.md|WORKFLOW.md|WORKORDER.md|CONSOLIDATION.md|WORKFLOW_CHANGELOG.md|CHANGELOG.md|PULL_WORKORDER.md|HARVEST_WORKORDER.md) continue;; esac
+    case "$base" in README.md|BOOTSTRAP.md|ADOPT.md|STACK.md|WORKFLOW.md|AGENTS.md|REVIEW.md|WORKORDER.md|CONSOLIDATION.md|WORKFLOW_CHANGELOG.md|CHANGELOG.md|PULL_WORKORDER.md|HARVEST_WORKORDER.md) continue;; esac
     echo "- \`${f#"$TARGET"/}\` (root-level doc — which workspace?)"
   done < <(find "$TARGET" -maxdepth 1 -type f -name '*.md' -print0 2>/dev/null)
   if [ "$MODE" = adopt ] && [ -d "$TARGET/docs" ]; then
@@ -378,6 +378,7 @@ agent_doc=$([ "$MODE" = adopt ] && echo "ADOPT.md" || echo "BOOTSTRAP.md")
   if [ "${#ENG_CLAUDE[@]}" -gt 0 ]; then
     echo "1. **Translate principles** in the engineering \`CLAUDE.md\`(s) — rewrite the Critical Rules / Code Style in the project's language per BOOTSTRAP's Principle→Binding table, then remove their \`⚠️ STARTER\` banner:"
     printf '%s\n' "${ENG_CLAUDE[@]}" | sed 's/^/   - /'
+    echo "   Then **re-emit** \`AGENTS.md\` mid-session (\`bash adapters/agents/emit-agents.sh --force\`) or rely on \`.githooks/pre-commit\` on commit."
     echo
   fi
   echo "2. **Fill remaining placeholders** (files still containing \`{{...}}\`):"
@@ -387,11 +388,11 @@ agent_doc=$([ "$MODE" = adopt ] && echo "ADOPT.md" || echo "BOOTSTRAP.md")
   if [ -n "$CANDS" ]; then printf '%s\n' "$CANDS" | sed 's/^/   /'; else echo "   - (none found)"; fi
   echo
   if [ "$MODE" = adopt ]; then
-    echo "4. **Merge, don't overwrite** — retrofit new rules (multi-workspace SCOPE, the product→engineering handoff, the \`Source: FEATURE-XXX\` task field) into existing docs by editing ONLY the affected sections."
+    echo "4. **Merge, don't overwrite** — retrofit new shared rules (SPEC/BUILD, review gate, secrets) into existing docs by editing ONLY the affected sections. If you change \`WORKFLOW.md\` or a \`CLAUDE.md\`, re-emit \`AGENTS.md\` (or rely on pre-commit)."
     echo
-    echo "5. **Clean up** — remove any leftover \`⚠️ STARTER\` banners; verify \`grep -rn '{{' .\` is clean; delete \`$agent_doc\` and this \`WORKORDER.md\`."
+    echo "5. **Clean up** — remove any leftover \`⚠️ STARTER\` banners; verify \`grep -rn '{{' .\` is clean; confirm root +\`*/AGENTS.md\` exist; delete \`$agent_doc\` and this \`WORKORDER.md\`."
   else
-    echo "4. **Clean up** — remove any leftover \`⚠️ STARTER\` banners; verify \`grep -rn '{{' .\` is clean; delete \`$agent_doc\` and this \`WORKORDER.md\`."
+    echo "4. **Clean up** — remove any leftover \`⚠️ STARTER\` banners; verify \`grep -rn '{{' .\` is clean; confirm root +\`*/AGENTS.md\` exist; delete \`$agent_doc\` and this \`WORKORDER.md\`."
   fi
 } > "$wo"
 

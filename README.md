@@ -15,8 +15,8 @@ The templates carry **proven patterns** — immutability, layered architecture, 
 ## How it works
 
 Every run has two phases:
-1. **`bin/scaffold.sh` (deterministic):** creates the chosen workspaces, copies template files (**never overwrites**), **substitutes placeholders** you provide, and writes a **`BOOTSTRAP.md`** guide.
-2. **The agent (semantic):** reads `BOOTSTRAP.md` and does what a script can't — translate principles to your stack via the [Principle → Binding](./template/BOOTSTRAP.md#principle--binding-translation) table, fill remaining placeholders, and remove scaffolding.
+1. **`bin/scaffold.sh` (deterministic):** creates the chosen workspaces, copies template files (**never overwrites**), **substitutes placeholders** you provide, installs portable **git hooks**, **emits `AGENTS.md`** from `WORKFLOW.md` / each side's `CLAUDE.md`, and writes a **`WORKORDER.md`** + **`BOOTSTRAP.md`** guide.
+2. **The agent (semantic):** reads `WORKORDER.md` / `BOOTSTRAP.md` and does what a script can't — translate principles to your stack via the [Principle → Binding](./template/BOOTSTRAP.md#principle--binding-translation) table, fill remaining placeholders, and remove scaffolding.
 
 > Why split it: creating/copying/substituting files is deterministic (script); translating architectural principles to language-specific idioms needs judgment (agent).
 

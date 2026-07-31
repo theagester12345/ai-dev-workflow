@@ -3,6 +3,25 @@
 Notable changes to **AI Dev Workflow (Community Edition)**. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); dates are `YYYY-MM-DD`.
 
+## [2026-07-31]
+
+### Added
+- **Portable sync from the premium master (batch 1).** Instruction precedence; BUILD⊇SPEC;
+  self-review gate + `REVIEW.md`; commit-message Principle with `commit-msg` /
+  `prepare-commit-msg` hooks; `AGENTS.md` emit adapter (`adapters/agents/`) with
+  pre-commit re-emit; tracker-mirror *Principle* (no Plane Binding); `STACK.md`,
+  `CONSOLIDATION.md`, `WORKFLOW_CHANGELOG.md`.
+- **Scaffold ships what the docs promise** for the above (hooks install, AGENTS emit,
+  REVIEW/STACK/CONSOLIDATION/WFC copies).
+
+### Fixed
+- **`scaffold.sh` `ALL_WS`** now matches shipped workspaces (`backend` / `frontend` only).
+  Previously advertised product / back-office / infra without shipping those templates.
+
+### Notes
+- Sourced from the private premium master catalog (`EDITION_SYNC` / TASK-025). Premium
+  pillars (product, legal/back-office, infra, apply/pull-updates) were **not** copied.
+
 ## [2026-07-07]
 
 ### Security
