@@ -46,6 +46,17 @@ if [ "$emit_needed" -eq 1 ]; then
     echo "  Copy it from the workflow template (adapters/agents/) or re-run scaffold."
     fail=1
   else
+    # The file index compiles INTO CLAUDE.md and AGENTS.md compiles FROM it, so
+    # refresh the index first or the Binding bakes in a stale listing.
+    if [ -f adapters/index/emit-index.sh ]; then
+      bash adapters/index/emit-index.sh >/dev/null 2>&1 || \
+        echo "  ! emit-index.sh failed — file index may be stale"
+      for cl in */CLAUDE.md; do
+        [ -f "$cl" ] || continue
+        git add -- "$cl"
+      done
+    fi
+
     echo "▶ pre-commit: re-emitting AGENTS.md from authored sources…"
     if ! bash "$emit_script" --force; then
       echo "✖ emit-agents.sh failed — fix the emit error before committing."

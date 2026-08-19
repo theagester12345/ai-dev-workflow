@@ -45,6 +45,9 @@ A workspace directory is a persona's **doc home**; code lives where the stack pu
 | Build | `{{BUILD_CMD}}` | `{{BUILD_CMD}}` |
 | Test | `{{TEST_CMD}}` | `{{TEST_CMD}}` |
 | Lint / typecheck | `{{LINT_CMD}}` | `{{LINT_CMD}}` |
+| Review (the gate) | `{{REVIEW_CMD}}` | `{{REVIEW_CMD}}` |
+
+> **Review** is how this host's code reviewer is invoked — the input to the [review gate](./WORKFLOW.md#self-review-before-declaring-done-build--mandatory). Record the command to **try**, not a verdict about the host. Write `<tier>` where the gate's tier goes, or `no tier arg` if the command takes none. `none` if there is no reviewer.
 
 ## Notes
 

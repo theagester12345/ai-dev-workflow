@@ -138,3 +138,15 @@ Run: `{{TEST_CMD}}`
 ---
 
 _{{PROJECT_NAME}} Backend — {{LANGUAGE}} / {{FRAMEWORK}}_
+
+---
+
+## Documents
+
+<!-- Curated entries belong ABOVE the markers — a key doc plus one line on what it is for.
+     That half is agent-owned and survives regeneration. -->
+
+### File index (auto — maintained by `adapters/index/emit-index.sh`; do NOT edit inside the markers)
+
+<!-- INDEX:START -->
+<!-- INDEX:END -->

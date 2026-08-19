@@ -29,6 +29,9 @@ When two instructions disagree, **do not invent a tie-break ad-hoc.** Resolve by
 - Answer the question asked, not the adjacent ones; unrequested findings go in the docs (`TASK.md`, `SESSION_LOG.md`), not the reply.
 - Report outcomes, not the process the tool calls already show.
 - No unrequested structure — prose over headers/tables for non-enumerable content.
+- Close out a finished BUILD task with a short summary and the files touched — created, changed, or deleted, as links. It reuses the file set the [review gate](#self-review-before-declaring-done-build--mandatory) already makes you declare: one list, two readers.
+- Low density, not just short: one idea per sentence, plain words, no stacked clauses. A brief paragraph can still be slow to read — length and density are separate faults.
+- Code comments carry the *why* — the constraint or the non-obvious reason. The code already says what it does, and a comment that narrates it becomes wrong at the next edit.
 - Auto-expand ONLY for high-stakes decisions (architecture, trade-offs, multi-step plans) — a narrow exception, not a licence to expand by default.
 
 - **DA** = force a detailed answer. There is **no** force-short shorthand — short *is* the default, so one would be redundant; don't reintroduce it.
@@ -63,16 +66,25 @@ After the task is implemented and the build/tests are **green**, the BUILD sessi
 
 **A gate the agent cannot invoke must block, not evaporate.** Where the best reviewer is human-only, the gate **holds the task open** instead of closing on a weaker stand-in. An honest blocked task is the correct outcome; a false pass never is.
 
-**The reviewer is chosen by capability, not vendor.** Select the **best reviewer available**, in this order:
+**The reviewer is chosen by capability, not vendor.** Its invocation is recorded once in [`STACK.md`](./STACK.md) → Commands — record the command to **try**, never a verdict about the host, since running it is what tells you which rung you are on. Select the **best reviewer available**, in this order:
 
-1. **A reviewer the agent can invoke itself** → run it, at the tier below. The gate closes in-session and the task proceeds to `COMPLETED`.
+1. **A reviewer the agent can invoke itself** → run it at the tier below, passed to the recorded command. Stamp `Review: <reviewer> (<tier>)`; the gate closes in-session and the task proceeds to `COMPLETED`.
 2. **A better reviewer exists but is human-only** → stop short of `COMPLETED`. Report review outstanding, name the reviewer and tier, stamp `Review: PENDING (<tier>)` on the task. **An outstanding review blocks `COMPLETED`**. Do **not** substitute the fallback here.
-3. **No reviewer at all** → run [`REVIEW.md`](./REVIEW.md), the workflow's own fallback, and close the gate.
+3. **No reviewer at all** → run [`REVIEW.md`](./REVIEW.md), the workflow's own fallback, and close the gate — stamped `Review: fallback (<tier>)`, since a fallback pass must never look like a real reviewer's pass.
 
 > **Never launder an unreviewed diff.** Where a better reviewer exists, running a weaker one *and recording the gate as satisfied* is worse than recording nothing.
 
+> **Run it — do not ask first.** Completing the BUILD task *is* the authorization to invoke a reviewer the agent can call. A host skill's "when the user asks" wording is not a reason to skip the gate or demote to case 2; only a reviewer the human must start is case 2. **A reviewer that fails to run has not run** — an error, timeout or rate-limit is not a pass: retry if it looks transient, otherwise drop a rung and say which one you landed on.
+
 - **No separately-billed tier is ever part of the gate.** Any tier that executes remotely or bills apart from ordinary session usage is a standing prohibition.
 - **Per-task while the change is fresh** — never batched to a merge point.
+
+**The gate closes over the change *this task* authored** — not whatever sits in the working tree. In a shared checkout the working diff is global and attributes nothing, so a task can close its gate on a diff it did not write.
+
+- Declare the file set before reviewing — the files this session edited, from its own writes.
+- Scope the findings, not the reading: the reviewer may read the whole repository, but reports only against that set.
+- Out-of-scope findings are reported, never fixed — route them to the owning task or the user.
+- Prefer isolation: a worktree or branch per session makes the diff correct by construction and needs none of the above.
 
 **Tier by what the change *touches*, not its size.** **high** — auth/security, money/payments, data integrity/migrations/state machines, or a public API-contract change. **medium** — everything else. **The agent selects the tier itself.**
 
@@ -102,7 +114,9 @@ After the task is implemented and the build/tests are **green**, the BUILD sessi
 - Add `Completed: YYYY-MM-DD`
 - Update `_Last Updated:_`
 
-**When the review is human-only:** the task stays `IN_PROGRESS` with `Review: PENDING (<tier>)`. It is **not** `BLOCKED`. Clear `Review:` only when a pass returns **no material findings**.
+**When the review is human-only:** the task stays `IN_PROGRESS` with `Review: PENDING (<tier>)`. It is **not** `BLOCKED`. Replace `PENDING` with what ran only when a pass returns **no material findings**.
+
+**Recommending what is next — name the companion, or say there isn't one.** Give the next task *and* whichever task could safely run alongside it in another session: its `Depends On` are satisfied and its file set is **disjoint** from the first. "None" is a valid and often correct answer — never manufacture a pairing, since a fabricated one produces exactly the collision the review scoping rule exists to prevent.
 
 ## Canonical Task Format
 
@@ -124,6 +138,8 @@ After the task is implemented and the build/tests are **green**, the BUILD sessi
 **References:** ...
 ```
 
+- **A spec is a hypothesis until it meets the code.** When the implementation contradicts the card, the implementation wins: correct the card and record what was wrong and why. Never contort code to satisfy a spec that turned out wrong about the codebase, and never deviate silently.
+
 ## Task Tracker Sync — the mirror Principle
 
 These rules are **tracker-agnostic**. The concrete tool (if any) is a **Binding** that lives in an adapter, not here. This community edition ships the Principle only — add a Binding if you want a live board mirror.
@@ -131,7 +147,10 @@ These rules are **tracker-agnostic**. The concrete tool (if any) is a **Binding*
 - **`TASK.md` is the single source of truth.** The tracker is a **one-way, downstream mirror** — the sync **never writes back**.
 - **After every `TASK.md` edit, run the sync** (dry-run, then live) when you have a Binding configured. If the tracker is unreachable, note sync as **pending**.
 - **One card per task, zero duplicates:** correlate on a deterministic external id.
-- **Scoped writes:** only touch issues carrying your workflow's source marker.
+- **Refuse duplicate source ids.** Two blocks in the source file carrying one id is a **parse error** — refused before any write, in dry-run as much as live. Otherwise it creates two cards for one id and every later run updates whichever the index returns.
+- **A one-way mirror must be able to refuse a destructive write, not merely narrate one.** An update landing on a card the source file did not author replaces it silently, and the mirror never reads back to notice. Fail rather than proceed — and the check must fire on an artifact the run actually observed, not one it assumed.
+- **Removal propagates.** A task deleted from the source is **deleted from the board** on the next run: a card the source no longer declares is stale, not extra, and leaving it makes the mirror disagree with the source silently. Dry-run must list every deletion first, and a run that parses **zero** tasks must refuse to delete anything — that is a misconfigured path, never a request to empty the board.
+- **Scoped writes:** only touch issues carrying your workflow's source marker; never modify or delete anything else.
 - **Idempotent:** a second run with no `TASK.md` change must write nothing.
 
 ## SESSION_LOG Protocol
@@ -159,13 +178,39 @@ After architecture/structure changes:
 - Keep docs minimal and current
 - Don't restate what's already in other files
 - **Workflow-convention changes (same change):** when you edit a *reusable* rule in this `WORKFLOW.md` or a `CLAUDE.md`/`ARCHITECT.md`, append a conceptual `WFC-…` entry to [`WORKFLOW_CHANGELOG.md`](./WORKFLOW_CHANGELOG.md). Write the **principle**, stack-agnostic.
+- **The file index is generated, never hand-written.** Each workspace `CLAUDE.md` carries an auto listing of its docs between `<!-- INDEX:START -->` / `<!-- INDEX:END -->`, rewritten by `adapters/index/emit-index.sh` and by `.githooks/pre-commit`. Never edit inside the markers; curated, annotated entries go above them. It lists docs only — code paths belong in [`STACK.md`](./STACK.md).
 - **`AGENTS.md` Binding (same change):** when you edit this `WORKFLOW.md` or a workspace `CLAUDE.md`, prefer letting `.githooks/pre-commit` re-emit on commit; mid-session run `bash adapters/agents/emit-agents.sh --force`. Do not hand-edit `AGENTS.md`.
+
+---
+
+## UI mock design self-review — before human approval
+
+Sibling of the [code self-review gate](#self-review-before-declaring-done-build--mandatory): same *role* (agent catches defects before human sign-off), different *surface* (reviewable UI mock, not application diff).
+
+When BUILD work for a UI screen uses a reviewable mock (static HTML or equivalent):
+
+1. **Create or update the mock first** — do not ask for approval on an empty mock.
+2. **Agent design self-review (mandatory)** — run a design checklist and **fix material findings** before showing the human. Minimum checks: adjacent sections must not share the same dominant surface; one job per section; clear primary vs secondary CTA; readable contrast; brand/palette coherence; first viewport not cluttered; primary actions tappable on small screens.
+2b. **Review the mock at the narrowest width the product supports, not only at the reviewer's window width.** A layout that fails at ~375px can pass on a laptop, and the defect surfaces after ship. Same principle as presenting every rendering mode: a width the gate never looks at is a width nobody approved.
+2c. **Every rendering mode the screen supports must be present on the reviewable artifact** (theme, density, contrast, RTL, …), switchable in place, so one human pass approves all modes. Modes a screen deliberately does **not** support are recorded as **exempt** on the checklist — "absent" must be distinguishable from "forgotten." Mode-specific checks belong in the Binding checklist (surfaces that separate in one mode can collapse in another; contrast must be verified per mode).
+3. **Open the mock in a real browser view for the human** after that pass (and after every edit round). A path or description alone is not review.
+4. **Human approval** stamps the section record — only then may application source for that screen be edited.
+5. **Implement from the approved mock as visual source of truth** — match section surfaces, palette, spacing hierarchy, and CTA treatment from the mock. Do **not** reinterpret mock colors through app theme tokens when that collapses adjacent contrast or flattens bands the mock kept distinct. Map to design-system tokens only when the visual relationships stay the same; otherwise use mock literals (or extend tokens to match the mock). Before marking the UI task done, open the shipped screen and confirm it reads like the approved mock (same section rhythm — not “same idea, different wash”), in every mode the screen supports.
+6. Naming the BUILD task authorizes this full loop for **that screen only**.
+
+**External “design score” tools are not part of the gate** — optional for accessibility/contrast doubt only. Human approval remains the taste/sign-off gate; the agent pass exists so structural failures (e.g. two adjacent same-tone bands) do not depend on the human noticing them.
+
+Side Bindings (paths, checklist file, mock folder layout) live in that side's `CLAUDE.md` → Design Workflow — they may **narrow** this section, never widen past “src before approval,” skip the agent pass, or treat theme tokens as trumping an approved mock.
+
+---
 
 ---
 
 ## Secrets & environment
 
 Secrets must never enter agent context. The contract is `.env.example` (variable **names**); the real `.env` (values) is off-limits.
+
+**One `.env` at the code root.** Exactly one `.env` / `.env.example` pair per runnable app, at the **code root** — where the stack's install and build run. Persona doc homes must not keep a second copy for the same secrets: a tool invoked from a doc home would then load a different, often stale file than the app. When a tool runs from a doc home, point it at the code-root `.env` (`--env` or equivalent) rather than making a local copy.
 
 - **Read `.env.example`, never `.env`/`.env.*` values.** Need a var that's missing? Add its **name** to `.env.example` and ask the user to fill `.env`.
 - **Never print, paste, echo, or commit a secret value** — refer to it by variable name.

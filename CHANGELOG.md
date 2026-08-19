@@ -3,6 +3,48 @@
 Notable changes to **AI Dev Workflow (Community Edition)**. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); dates are `YYYY-MM-DD`.
 
+## [2026-08-19]
+
+### Added
+- **Portable sync from the premium master (batch 2).** Everything below is rewritten to this
+  edition's shorter register rather than copied — the premium spine states the same rules at
+  roughly twice the length.
+  - **Review gate:** the reviewer's invocation is recorded in `STACK.md` → Commands (a new
+    `Review` row) instead of re-derived each session; run an invocable reviewer without asking
+    first; a reviewer that errors or times out is **not** a pass; `Review:` now records *what
+    ran*, so a fallback pass and a real one are no longer indistinguishable; and the gate closes
+    over the change **this task** authored — declare the file set, report only against it, prefer
+    a worktree per session.
+  - **Communication:** close out a finished BUILD task with a summary and the files touched;
+    low density is a separate requirement from brevity; code comments carry the *why*.
+  - **Task rules:** recommending next work must name a safe parallel companion or say there is
+    none; a spec is a hypothesis until it meets the code — where they disagree, the
+    implementation wins and the card gets corrected.
+  - **Secrets:** exactly one `.env` at the code root; no doc-home duplicate.
+  - **Mirror Principle:** duplicate source ids are a parse error; a one-way mirror must be able to
+    **refuse** a destructive write rather than narrate one, and its safety check must fire on an
+    artifact it observed; **removal propagates** — a task deleted from the source is deleted from
+    the board, with dry-run listing deletions first and a zero-task run refusing to delete at all.
+
+  - **Generated file index:** new `adapters/index/emit-index.sh` writes a listing of each
+    workspace's docs between `INDEX:START` / `INDEX:END` markers in that workspace's `CLAUDE.md`.
+    The script writes what exists; your curated, annotated entries live above the markers and
+    survive regeneration. Docs only, never code paths. Run by `scaffold.sh` and by
+    `.githooks/pre-commit`, both **before** the `AGENTS.md` emit, since that Binding is compiled
+    from `CLAUDE.md`.
+
+  - **UI mock design gate.** New spine section: when BUILD work for a UI screen uses a reviewable
+    mock, the agent creates the mock, runs a design self-review against a checklist and fixes
+    material findings, opens it in a real browser for the human, and only edits application source
+    after approval — then implements from the approved mock as the visual source of truth. Every
+    rendering mode the screen supports must be present on the artifact, and it is reviewed at the
+    narrowest width the product supports. Ships with `frontend/mockups/DESIGN_REVIEW.md` (the
+    checklist), `frontend/mockups/README.md`, and a self-contained frontend Binding.
+
+### Not included (deliberately)
+- Update automation (`apply-updates` / `pull-updates`) and its workorder rules — premium.
+- Any tracker adapter code. This edition ships the mirror **Principle** only.
+
 ## [2026-07-31]
 
 ### Added

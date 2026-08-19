@@ -270,6 +270,14 @@ for ws in $WORKSPACES; do
     if [ "$base" = "INTERFACE.md" ] && [ "$ENG_COUNT" -lt 2 ]; then continue; fi
     copy_if_missing "$f" "$TARGET/$ws/$base"
   done < <(find "$TEMPLATE_DIR/$ws" -maxdepth 1 -type f -print0)
+  # Ship the mockups Binding docs (checklist + index). Mock HTML/CSS stay project-local.
+  if [ -d "$TEMPLATE_DIR/$ws/mockups" ]; then
+    mkdir -p "$TARGET/$ws/mockups"
+    while IFS= read -r -d '' mf; do
+      case "$mf" in *.html|*.css) continue;; esac
+      copy_if_missing "$mf" "$TARGET/$ws/mockups/$(basename "$mf")"
+    done < <(find "$TEMPLATE_DIR/$ws/mockups" -maxdepth 1 -type f -print0)
+  fi
 done
 
 # substitute + banner-strip every freshly-copied file (never touches existing files)
@@ -278,7 +286,14 @@ for rel in "${COPIED[@]:-}"; do [ -n "$rel" ] && process_file "$rel"; done
 # ---- .gitignore (mockups + secrets) ----
 gi="$TARGET/.gitignore"; touch "$gi"
 add_ignore() { grep -qxF "$1" "$gi" 2>/dev/null || echo "$1" >> "$gi"; }
-case " $WORKSPACES " in *" frontend "*) add_ignore "frontend/mockups/";; esac
+# Mock HTML/CSS is throwaway working material; the mockups Binding docs
+# (DESIGN_REVIEW.md, README.md) must stay tracked, so ignore by extension.
+case " $WORKSPACES " in
+  *" frontend "*)
+    add_ignore "frontend/mockups/**/*.html"
+    add_ignore "frontend/mockups/**/*.css"
+    ;;
+esac
 # Secrets hygiene: never commit real env files; commit a .env.example template instead.
 add_ignore ".env"
 add_ignore ".env.local"
@@ -299,6 +314,18 @@ if [ -d "$TEMPLATE_DIR/.githooks" ]; then
 fi
 
 # ---- AGENTS.md tree (Binding emit — one source, compile per tool) ----
+# File index first: it compiles INTO each CLAUDE.md, and AGENTS.md compiles FROM it,
+# so emitting agents first would bake in an empty index.
+if [ -f "$TEMPLATE_DIR/adapters/index/emit-index.sh" ]; then
+  mkdir -p "$TARGET/adapters/index"
+  copy_if_missing "$TEMPLATE_DIR/adapters/index/emit-index.sh" "$TARGET/adapters/index/emit-index.sh"
+  copy_if_missing "$TEMPLATE_DIR/adapters/index/README.md" "$TARGET/adapters/index/README.md"
+  chmod +x "$TARGET/adapters/index/emit-index.sh" 2>/dev/null || true
+  bash "$TARGET/adapters/index/emit-index.sh" --target "$TARGET" >/dev/null || {
+    echo "  ! emit-index.sh failed — workspace file index left empty" >&2
+  }
+fi
+
 if [ -f "$TARGET/adapters/agents/emit-agents.sh" ]; then
   chmod +x "$TARGET/adapters/agents/emit-agents.sh" 2>/dev/null || true
   bash "$TARGET/adapters/agents/emit-agents.sh" --target "$TARGET" || {
