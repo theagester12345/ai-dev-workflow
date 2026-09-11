@@ -29,6 +29,8 @@ bash adapters/agents/emit-agents.sh --force
 
 ## Adding a third tool (e.g. `.cursor/rules`)
 
+**Whether to add one: a per-tool target earns its place only where `AGENTS.md` cannot reach.** This is not a prohibition — per-tool output is exactly what a Binding is *for*. The cost is **maintenance**: a target is pinned to one vendor's file layout and rots at that vendor's pace, while `AGENTS.md` is a convention many hosts already share. So the test is **reach, not preference** — *can this host read `AGENTS.md`?* If it can, it is already served, and a second target buys only another file to keep current. If it cannot, add the target.
+
 Do **not** author a new content body. Add another compile target that reads the **same** sources:
 
 1. Map each authored file → the tool's destination (e.g. `.cursor/rules/workflow.mdc` ← `WORKFLOW.md`).

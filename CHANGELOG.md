@@ -3,6 +3,46 @@
 Notable changes to **AI Dev Workflow (Community Edition)**. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); dates are `YYYY-MM-DD`.
 
+## [2026-09-11]
+
+### Added
+- **Portable sync from the premium master (batch 3a)** — rewritten to this edition's register, as
+  with earlier batches, rather than copied.
+  - **Verification only a human can run gets its own task.** Criteria the implementing session
+    cannot prove — a deploy, a dashboard read, a delivered email, a real handset — move to a
+    dedicated verification task under four conditions (verbatim copy, same-change creation,
+    both-way links, inherited priority). The argument is **actors**: an agent builds, a person
+    observes, and a card holding both halves is never anybody's turn. Explicitly does **not**
+    apply to the review gate, and `COMPLETED` narrows to *built and reviewed*.
+  - **A card is not specced until BUILD can start from it without hunting** — exact paths,
+    the signatures SPEC actually saw, ordered work steps, observable criteria.
+  - **A regression test must be seen *red* before it is trusted green.** Author and test share
+    assumptions, so a test written after the fix can encode the defect as expected behaviour
+    and still pass.
+  - **Plain first, precise second** — an internal id is a pointer to an argument, never the
+    argument itself.
+  - **A reviewer command is per host, not per project** — one row per host you actually use,
+    rather than a stored verdict about which host you are on.
+  - **A per-tool emit target earns its place only where `AGENTS.md` cannot reach** — a reach
+    test, not a prohibition, in the emit adapter's own README.
+- `Source:` is now part of the canonical task format, carrying the back-pointer for a split
+  verification task.
+
+### Changed
+- **README rewritten.** It opened by calling itself a "documentation scaffold" and buried the
+  actual idea — the script does the deterministic work, the agent does the semantic work, and the
+  filesystem carries the structure — in a blockquote halfway down. That is now the first thing on
+  the page, alongside the two properties that follow from it: rules enforced in git hooks rather
+  than in one assistant's config, and one authored source compiled into the `AGENTS.md` tree.
+
+### Fixed
+- **README described `PLAN` mode**, renamed to `SPEC` some time ago and `SPEC` everywhere in the
+  spine. A reader following the README would have declared a mode that does not exist.
+- **README understated what ships.** Its layout omitted `REVIEW.md`, `STACK.md`,
+  `CONSOLIDATION.md`, `WORKFLOW_CHANGELOG.md`, `.githooks/`, both adapters and `frontend/mockups/`,
+  and its quick start said to read `BOOTSTRAP.md` where the script itself prints
+  *"execute WORKORDER.md"*.
+
 ## [2026-08-19]
 
 ### Added

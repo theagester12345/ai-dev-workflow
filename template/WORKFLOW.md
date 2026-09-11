@@ -31,6 +31,7 @@ When two instructions disagree, **do not invent a tie-break ad-hoc.** Resolve by
 - No unrequested structure — prose over headers/tables for non-enumerable content.
 - Close out a finished BUILD task with a short summary and the files touched — created, changed, or deleted, as links. It reuses the file set the [review gate](#self-review-before-declaring-done-build--mandatory) already makes you declare: one list, two readers.
 - Low density, not just short: one idea per sentence, plain words, no stacked clauses. A brief paragraph can still be slow to read — length and density are separate faults.
+- Plain first, precise second — a reference is never the explanation. Lead with the plain statement, then the precise form for whoever needs it. An internal id (a task, a ticket, a commit) is a **pointer to an argument, not the argument**: check it by asking whether the sentence still says anything to a reader who cannot open what it names. (Cards and logs are reference material and keep the dense register — this governs replies.)
 - Code comments carry the *why* — the constraint or the non-obvious reason. The code already says what it does, and a comment that narrates it becomes wrong at the next edit.
 - Auto-expand ONLY for high-stakes decisions (architecture, trade-offs, multi-step plans) — a narrow exception, not a licence to expand by default.
 
@@ -42,7 +43,7 @@ Every session runs in ONE mode, declared at session start. If none is declared, 
 
 ### SPEC Mode (default)
 - **Purpose:** Analysis, design, task breakdown
-- **Output:** Tasks written to `TASK.md`
+- **Output:** Tasks written to `TASK.md` that meet [Canonical Task Format](#canonical-task-format)
 - **May:** Read anything, edit docs, create tasks
 - **Must NOT:** Write application code, add dependencies, run builds/tests, move tasks to `IN_PROGRESS`
 
@@ -66,7 +67,7 @@ After the task is implemented and the build/tests are **green**, the BUILD sessi
 
 **A gate the agent cannot invoke must block, not evaporate.** Where the best reviewer is human-only, the gate **holds the task open** instead of closing on a weaker stand-in. An honest blocked task is the correct outcome; a false pass never is.
 
-**The reviewer is chosen by capability, not vendor.** Its invocation is recorded once in [`STACK.md`](./STACK.md) → Commands — record the command to **try**, never a verdict about the host, since running it is what tells you which rung you are on. Select the **best reviewer available**, in this order:
+**The reviewer is chosen by capability, not vendor.** Its invocation is recorded in [`STACK.md`](./STACK.md) → Commands — one command per host this project actually uses, and you try the row for *this* session. Record the command to **try**, never a verdict about the host, since running it is what tells you which rung you are on. Select the **best reviewer available**, in this order:
 
 1. **A reviewer the agent can invoke itself** → run it at the tier below, passed to the recorded command. Stamp `Review: <reviewer> (<tier>)`; the gate closes in-session and the task proceeds to `COMPLETED`.
 2. **A better reviewer exists but is human-only** → stop short of `COMPLETED`. Report review outstanding, name the reviewer and tier, stamp `Review: PENDING (<tier>)` on the task. **An outstanding review blocks `COMPLETED`**. Do **not** substitute the fallback here.
@@ -91,6 +92,8 @@ After the task is implemented and the build/tests are **green**, the BUILD sessi
 **Re-review the fixes — then stop on severity, not on count.** Re-run the review **scoped to the fix diff**. Continue only while findings are **material** (correctness, security, money, data integrity, contract); once what remains is advisory or stylistic, **record it and stop**. When the best reviewer is human-only, fix-diff re-review **also hard-blocks `COMPLETED`**.
 
 **Addressing returned findings is named BUILD work.** Open a BUILD session and **name the task**.
+
+- **A regression test must be seen *red* before it is trusted green.** When a fix ships with a test, run that test against the **unfixed** code and watch it fail. A test written after the fix passes — which is not the same as a test that would have caught the bug. Author and test share assumptions, so the test can encode the defect as expected behaviour and still go green; one extra run is the only direct evidence it is coupled to the defect rather than to your implementation.
 
 **The review must be structurally independent of the author.** The fallback procedure that enforces this is [`REVIEW.md`](./REVIEW.md) — **last resort**, never a substitute for a host-provided reviewer.
 
@@ -118,6 +121,25 @@ After the task is implemented and the build/tests are **green**, the BUILD sessi
 
 **Recommending what is next — name the companion, or say there isn't one.** Give the next task *and* whichever task could safely run alongside it in another session: its `Depends On` are satisfied and its file set is **disjoint** from the first. "None" is a valid and often correct answer — never manufacture a pairing, since a fabricated one produces exactly the collision the review scoping rule exists to prevent.
 
+## Verification only a human can run — split it, don't park the card
+
+Some acceptance criteria cannot be met by the session that wrote the code: a deploy has to happen, a dashboard has to be read, an email has to arrive, a real handset has to be held. Left on the implementing card they hold it `IN_PROGRESS` indefinitely, and a board carrying several stops distinguishing *still being built* from *built, waiting on somebody to look*.
+
+**Split the observation into its own task.** The implementing card keeps every criterion its own session can prove and closes normally; a **verification task** carries the ones needing a person, the exact steps, and what counts as a pass.
+
+**Why a split and not a new status:** the two halves have **different actors**. An agent builds; a person deploys and observes. One card owned by two actors is never actually anybody's turn, which is why it sits. A `VERIFYING` status leaves that unchanged while costing every tracker adapter a value to learn.
+
+**This does not apply to the [review gate](#self-review-before-declaring-done-build--mandatory).** A human-only *review* still holds its task open under that section's own rule — splitting it would let unreviewed code read as done.
+
+**Four conditions, all required** — without them this is a way to mark unfinished work `COMPLETED`:
+
+1. **Criteria move; they never evaporate.** Unmet criteria are copied across **verbatim**; dropping one is a scope change and is recorded as one.
+2. **Created in the same change** that closes the implementing card — never "filed later."
+3. **Linked both ways.** The implementing card names its verification task; that task carries the implementing card as its `Source:`.
+4. **It inherits at least the implementing card's priority**, so a Critical proof is not quietly demoted.
+
+`COMPLETED` then means **built and reviewed, not proven in production** — so the implementing card says which task holds its proof. Where that narrowing is unacceptable (a regulated claim, a client sign-off, anything where "done" is contractual), **do not split; hold the card open.**
+
 ## Canonical Task Format
 
 ```markdown
@@ -127,6 +149,7 @@ After the task is implemented and the build/tests are **green**, the BUILD sessi
 **Duration:** [X hours/days]
 **Category:** [per-workspace]
 **Depends On:** [TASK-XXX, ...] or None
+**Source:** [FEATURE-XXX or TASK-XXX] (optional — what this implements, or the card whose proof this verifies)
 **Review:** PENDING (<tier>) (optional — set when a human-only review is outstanding)
 
 **Description:** ...
@@ -138,6 +161,8 @@ After the task is implemented and the build/tests are **green**, the BUILD sessi
 **References:** ...
 ```
 
+- **A card is not specced until BUILD can start from it without hunting.** Required on the card: exact file paths (or an explicit `discover under <path>` where the read did not find them); the function and type names SPEC actually saw, and how they change; ordered work steps; observable acceptance criteria. A title-plus-wish card fails this bar. Still forbidden: inventing a public API the product has not decided; line-by-line pseudocode the source must match (a second copy of the code — it rots); naming a path SPEC never opened. The next bullet is the correction valve for a card that was wrong about the code; it is not a ban on naming how.
+- **A card whose proof was split names the task holding it**, and that task carries this one as its `Source:` — see [Verification only a human can run](#verification-only-a-human-can-run--split-it-dont-park-the-card). No new field.
 - **A spec is a hypothesis until it meets the code.** When the implementation contradicts the card, the implementation wins: correct the card and record what was wrong and why. Never contort code to satisfy a spec that turned out wrong about the codebase, and never deviate silently.
 
 ## Task Tracker Sync — the mirror Principle
