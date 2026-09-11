@@ -343,6 +343,15 @@ else
   echo "  ! adapters/agents/emit-agents.sh missing — skip AGENTS emit" >&2
 fi
 
+# ---- sync stamp (records the commit this project was scaffolded from) ----
+# This is what lets bin/apply-updates.sh later carry template improvements DOWN
+# incrementally: without a baseline it can only offer a full catalog. Track the
+# file in the project (do NOT gitignore it). Overwriting on re-run is intended —
+# a fresh bootstrap or adopt IS a sync to the current template.
+if git -C "$MASTER_ROOT" rev-parse HEAD >/dev/null 2>&1; then
+  printf 'MASTER_COMMIT=%s\n' "$(git -C "$MASTER_ROOT" rev-parse HEAD)" > "$TARGET/.workflow-sync"
+fi
+
 # ---- stack detection (best-effort; agent confirms) ----
 detect_stack() {
   local d=$TARGET out=""

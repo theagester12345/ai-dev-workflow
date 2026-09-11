@@ -46,6 +46,25 @@ Options: `--workspaces backend,frontend` (choose a subset), `--set KEY=VALUE` (f
 
 The templates ship with `{{PLACEHOLDERS}}` precisely so the second phase has something to resolve. A principle like immutability becomes `final` in Java, `const` in TypeScript, `val` in Kotlin, `Final` in Python — same rule, four bindings.
 
+## Keeping a project up to date
+
+A scaffold is a snapshot. The template keeps improving, and without a way to carry those improvements forward, a project made from it slowly falls behind.
+
+`bin/apply-updates.sh` closes that gap:
+
+```bash
+./bin/apply-updates.sh ../my-project
+```
+
+It writes an `UPGRADE_WORKORDER.md` **into that project** containing the exact `template/` diff since the project last synced. You then open the project in your agent and say *"execute UPGRADE_WORKORDER.md"* — it plans first, waits for your approval, and only then edits. It ports each change **conceptually** into your real, filled docs rather than pasting template text back over them.
+
+`bin/scaffold.sh` writes a `.workflow-sync` stamp recording the commit a project was made from, which is what makes each later run an exact diff rather than a guess. **Commit that file** — don't gitignore it.
+
+Two behaviours worth knowing:
+
+- **It refuses to run on a dirty checkout.** Updates are computed from committed history, so uncommitted template work would be silently skipped while the project got stamped as up to date. `--allow-dirty` is the deliberate override.
+- **A project with no stamp** (scaffolded before this existed) falls back to a catalog of changes rather than a diff, and this edition's changelog is written as release notes rather than as a machine-readable ledger — so the catalog will tell you it has nothing to list. Re-scaffolding over the project writes the stamp and makes every future run incremental.
+
 ## What's in the payload
 
 ```

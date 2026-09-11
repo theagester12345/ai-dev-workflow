@@ -6,6 +6,19 @@ Notable changes to **AI Dev Workflow (Community Edition)**. Format loosely follo
 ## [2026-09-11]
 
 ### Added
+- **`bin/apply-updates.sh` — carry template improvements into a project you already scaffolded.**
+  A scaffold was a snapshot: the template kept improving and projects made from it did not. The
+  script writes an `UPGRADE_WORKORDER.md` into a project containing the exact `template/` diff
+  since that project last synced; an agent then applies it **conceptually** to the project's real,
+  filled docs — plan first, wait for approval, never paste template text back over concrete
+  wording. `bin/scaffold.sh` now writes a `.workflow-sync` stamp (the commit a project was made
+  from), which is what makes each later run a precise diff rather than a guess — **commit it**.
+  It refuses to run on a dirty checkout, because updates come from committed history and
+  uncommitted work would be skipped silently while the project was stamped as current
+  (`--allow-dirty` overrides). A project with no stamp falls back to a catalog, and since this
+  edition's changelog is release notes rather than a machine-readable ledger, that catalog will
+  report nothing to list — re-scaffolding writes the stamp and makes future runs incremental.
+  See **Keeping a project up to date** in the README.
 - **Portable sync from the premium master (batch 3a)** — rewritten to this edition's register, as
   with earlier batches, rather than copied.
   - **Verification only a human can run gets its own task.** Criteria the implementing session
