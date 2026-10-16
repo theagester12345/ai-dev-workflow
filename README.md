@@ -1,6 +1,10 @@
 # AI Dev Workflow
 
-Structure for AI-assisted development, as plain markdown and a shell script — no framework, no runtime, no lock-in to one AI tool.
+**Run a software project with a team of AI agents** — a backend agent and a frontend agent — each with its own role, both working from the same plan, with you making the calls.
+
+The agents don't need a framework to work together. They coordinate through plain records in your repo: one shared rulebook, a task board for each side, and a log of decisions with the options that were turned down. You name the work, approve the plans, and make the commits. It works with any AI coding tool: it is plain markdown and a shell script, with no runtime and no lock-in.
+
+**Getting started is one command.** It sets the team up in a new repo or an existing one — see [Quick start](#quick-start).
 
 **The idea in one line:** a script does the deterministic work, the agent does the semantic work, and the filesystem carries the structure that people usually reach for an orchestration framework to provide.
 
@@ -15,6 +19,15 @@ Creating directories, copying files and substituting values is mechanical — a 
 - **Task state in the repo**, in a format stable enough to mirror to a tracker, next to the code it describes.
 
 Nothing here is specific to one language, one framework, or one AI tool. Tool-specific pieces are isolated as *Bindings* and clearly labelled.
+
+## Running the team
+
+How to drive the two agents without losing the thread. This is advice from running it, not a rule; nothing enforces it.
+
+- **Build the provider before the consumer: backend → frontend.** For a feature that touches both, plan both sides before either builds. A backend that finishes first gives the frontend something real to build on.
+- **Small changes follow the request chain.** When one side needs the other to change something, it files a request in its outbox. Finish the side nobody is waiting on first. When a task answers a request, open the side that asked and say **sync**, so it picks up the answer.
+- **Plan the cross-side needs you can see.** A planning session files them before the work starts: an endpoint for backend, a screen for frontend. Then a build does not stop halfway to switch sides. Needs that only show up in the code still surface while building, and that is fine.
+- **One building session at a time works best for one person.** Every finished task hands its own files to you for review, and your attention is the limit.
 
 ## Quick start
 
