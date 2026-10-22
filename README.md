@@ -117,6 +117,20 @@ A scaffolded project gets the same shape, with `AGENTS.md` emitted beside each `
 
 **One source, referenced — never copied.** Shared rules live once in `WORKFLOW.md` and every side points at them. Two files stating the same rule is not redundancy, it's a pending contradiction.
 
+## Skills
+
+Two of the workflow's review procedures also work on their own, in any git repo, as [Agent Skills](https://agentskills.io) (`SKILL.md`). Each needs only git and a shell.
+
+- **[`reviewer-questions`](skills/reviewer-questions/SKILL.md)** — after a change, the agent stops and asks whether you left questions in the code. *collect* gathers every one in the files that change touched as one set; *proceed* runs a guard scan that refuses while any remain.
+- **[`diff-review`](skills/diff-review/SKILL.md)** — on request, opens the diffs of the files a change touched, one at a time, then asks *collect or approve?*. Nothing is committed before *approve*.
+
+```sh
+npx skills add theagester12345/ai-dev-workflow --skill reviewer-questions
+npx skills add theagester12345/ai-dev-workflow --skill diff-review
+```
+
+The skills are single procedures. The full workflow, with the team, the gates and the task board, is the rest of this repo.
+
 ## Contributing
 
 Issues and PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).

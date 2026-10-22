@@ -3,6 +3,19 @@
 Notable changes to **AI Dev Workflow (Community Edition)**. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); dates are `YYYY-MM-DD`.
 
+## [2026-10-22]
+
+### Added
+- **Two standalone Agent Skills in `skills/`**, each a `SKILL.md` with its script and tests, needing
+  only git and a shell:
+  - **`reviewer-questions`** — after a change, stop and ask whether the reviewer left questions in
+    the code; *collect* gathers every marker in the files the change touched as one set, *proceed*
+    runs a guard scan that refuses while any remain, and markers are deleted last.
+  - **`diff-review`** — on request, open each changed file's diff one at a time with the working
+    file on the right, then ask *collect or approve?*; never commit before *approve*.
+  Install with `npx skills add theagester12345/ai-dev-workflow --skill <name>`. See **Skills** in
+  the README.
+
 ## [2026-09-11]
 
 ### Added
