@@ -408,13 +408,17 @@ agent_doc=$([ "$MODE" = adopt ] && echo "ADOPT.md" || echo "BOOTSTRAP.md")
   echo "## Context"
   echo "- Mode: **$MODE** · Workspaces: \`$WORKSPACES\` · Detected stack: **$DETECTED**"
   echo "- Created: ${#COPIED[@]} file(s) · left untouched (already present): ${#SKIPPED[@]} _(never overwrites)_ · **fully resolved by the script (agent can skip): ${#RESOLVED[@]}**"
+  # The emitter refuses an AGENTS.md without its marker; say so here, so the agent leaves it alone too.
+  if [ -f "$TARGET/AGENTS.md" ] && ! head -n 1 "$TARGET/AGENTS.md" | grep -qF 'EMITTED Binding'; then
+    echo "- \`AGENTS.md\` is the project's own (no EMITTED Binding marker): never overwritten or re-emitted, so a host that reads only \`AGENTS.md\` does not reach the workflow from it (\`adapters/agents/README.md\`). Leave it as it is."
+  fi
   echo
   echo "## Agent tasks — read [\`$agent_doc\`](./$agent_doc), then:"
   echo
   if [ "${#ENG_CLAUDE[@]}" -gt 0 ]; then
     echo "1. **Translate principles** in the engineering \`CLAUDE.md\`(s) — rewrite the Critical Rules / Code Style in the project's language per BOOTSTRAP's Principle→Binding table, then remove their \`⚠️ STARTER\` banner:"
     printf '%s\n' "${ENG_CLAUDE[@]}" | sed 's/^/   - /'
-    echo "   Then **re-emit** \`AGENTS.md\` mid-session (\`bash adapters/agents/emit-agents.sh --force\`) or rely on \`.githooks/pre-commit\` on commit."
+    echo "   Then **re-emit** \`AGENTS.md\` mid-session (\`bash adapters/agents/emit-agents.sh --force\`: emitted Bindings only; a project's own \`AGENTS.md\` is never touched) or rely on \`.githooks/pre-commit\` on commit."
     echo
   fi
   echo "2. **Fill remaining placeholders** (files still containing \`{{...}}\`):"
@@ -426,9 +430,9 @@ agent_doc=$([ "$MODE" = adopt ] && echo "ADOPT.md" || echo "BOOTSTRAP.md")
   if [ "$MODE" = adopt ]; then
     echo "4. **Merge, don't overwrite** — retrofit new shared rules (SPEC/BUILD, review gate, secrets) into existing docs by editing ONLY the affected sections. If you change \`WORKFLOW.md\` or a \`CLAUDE.md\`, re-emit \`AGENTS.md\` (or rely on pre-commit)."
     echo
-    echo "5. **Clean up** — remove any leftover \`⚠️ STARTER\` banners; verify \`grep -rn '{{' .\` is clean; confirm root +\`*/AGENTS.md\` exist; delete \`$agent_doc\` and this \`WORKORDER.md\`."
+    echo "5. **Clean up** — remove any leftover \`⚠️ STARTER\` banners; verify \`grep -rn '{{' .\` is clean; confirm every **emitted** \`AGENTS.md\` matches its source (a project's own is not one); delete \`$agent_doc\` and this \`WORKORDER.md\`."
   else
-    echo "4. **Clean up** — remove any leftover \`⚠️ STARTER\` banners; verify \`grep -rn '{{' .\` is clean; confirm root +\`*/AGENTS.md\` exist; delete \`$agent_doc\` and this \`WORKORDER.md\`."
+    echo "4. **Clean up** — remove any leftover \`⚠️ STARTER\` banners; verify \`grep -rn '{{' .\` is clean; confirm every **emitted** \`AGENTS.md\` matches its source (a project's own is not one); delete \`$agent_doc\` and this \`WORKORDER.md\`."
   fi
 } > "$wo"
 

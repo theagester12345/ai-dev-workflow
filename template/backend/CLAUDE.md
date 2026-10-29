@@ -101,7 +101,8 @@ In a monorepo:
 
 - **Auth:** _<who does authn vs authz>_
 - **CORS:** env-driven origins
-- **Error shape:** consistent JSON (`{ timestamp, status, error, message }`)
+- **Error shape:** consistent JSON (`{ timestamp, status, error, code, message }`; `code` is from the registry below)
+- **Error codes:** part of the contract. Keep a registry beside the API docs — each stable code with its meaning. A code is never reused or repurposed; changing what one means is a breaking change.
 - **Pagination:** stable wrapper, never bare array
 
 ## Environments & Config

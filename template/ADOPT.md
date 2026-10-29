@@ -27,6 +27,7 @@ Use this guide when adding the workflow to a project that already has code and d
    - Copy templates for missing workspace docs
    - Fill with concrete project info (no placeholders)
    - Don't overwrite existing files
+   - **An `AGENTS.md` the repo already has is its own** (no `EMITTED Binding` marker): the emit and the pre-commit hook never overwrite or stage it. A host that reads only `AGENTS.md` then does not reach the workflow from it — [`adapters/agents/README.md`](./adapters/agents/README.md).
 
 4. **Retrofit conventions surgically**
    - If existing CLAUDE.md lacks operating modes → add that section

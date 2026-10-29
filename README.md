@@ -25,7 +25,7 @@ Nothing here is specific to one language, one framework, or one AI tool. Tool-sp
 How to drive the two agents without losing the thread. This is advice from running it, not a rule; nothing enforces it.
 
 - **Build the provider before the consumer: backend → frontend.** For a feature that touches both, plan both sides before either builds. A backend that finishes first gives the frontend something real to build on.
-- **Small changes follow the request chain.** When one side needs the other to change something, it files a request in its outbox. Finish the side nobody is waiting on first. When a task answers a request, open the side that asked and say **sync**, so it picks up the answer.
+- **Small changes follow the request chain.** When one side needs the other to change something, it says so and you carry the request to the other side's session, which files it as a task. Finish the side nobody is waiting on first. When that task is done, tell the side that asked.
 - **Plan the cross-side needs you can see.** A planning session files them before the work starts: an endpoint for backend, a screen for frontend. Then a build does not stop halfway to switch sides. Needs that only show up in the code still surface while building, and that is fine.
 - **One building session at a time works best for one person.** Every finished task hands its own files to you for review, and your attention is the limit.
 
@@ -83,6 +83,8 @@ Two behaviours worth knowing:
 ```
 ai-dev-workflow/                  # this repo
 ├── bin/scaffold.sh               # bootstrap / adopt
+├── bin/apply-updates.sh          # carry template improvements into a scaffolded project
+├── skills/                       # two review procedures that also work on their own (below)
 └── template/                     # everything stamped into a project
     ├── WORKFLOW.md               # the shared spine — conventions every side follows
     ├── BOOTSTRAP.md              # first-run guide + Principle→Binding table

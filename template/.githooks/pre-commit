@@ -6,7 +6,8 @@
 # 1) Secret guard: block real .env files / high-signal secret patterns.
 # 2) AGENTS.md Binding sync: if WORKFLOW.md / CLAUDE.md / AGENTS.md is staged,
 #    re-emit AGENTS.md from sources and stage the result (principle 3 — no relying
-#    on humans remembering to run emit-agents.sh).
+#    on humans remembering to run emit-agents.sh). A project's own AGENTS.md (no
+#    EMITTED Binding marker) is never rewritten or staged.
 #
 # Bypass (false positive): git commit --no-verify
 # For thorough secret scanning, add gitleaks: https://github.com/gitleaks/gitleaks
@@ -58,14 +59,17 @@ if [ "$emit_needed" -eq 1 ]; then
     fi
 
     echo "▶ pre-commit: re-emitting AGENTS.md from authored sources…"
-    if ! bash "$emit_script" --force; then
+    if ! emitted=$(bash "$emit_script" --force --list); then
       echo "✖ emit-agents.sh failed — fix the emit error before committing."
       fail=1
     else
-      # Include regenerated Bindings in this commit (deterministic; never hand-edited)
-      if [ -f AGENTS.md ]; then git add -- AGENTS.md; fi
-      for agents in */AGENTS.md; do
-        [ -f "$agents" ] || continue
+      # Include regenerated Bindings in this commit (deterministic; never hand-edited). Only the
+      # paths the emitter names: an AGENTS.md without its marker is the project's own, and staging
+      # it would commit edits its owner never staged.
+      # A Binding the project ignores is skipped, not added: `git add` of an ignored path fails
+      # and would abort the commit.
+      printf '%s\n' "$emitted" | while IFS= read -r agents; do
+        if [ -z "$agents" ] || git check-ignore -q -- "$agents"; then continue; fi
         git add -- "$agents"
       done
     fi

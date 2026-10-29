@@ -28,7 +28,7 @@ When two instructions disagree, **do not invent a tie-break ad-hoc.** Resolve by
 
 - Answer the question asked, not the adjacent ones; unrequested findings go in the docs (`TASK.md`, `SESSION_LOG.md`), not the reply.
 - Report outcomes, not the process the tool calls already show.
-- No unrequested structure — prose over headers/tables for non-enumerable content.
+- No unrequested structure — prose over headers/tables for non-enumerable content. Two places require it: the finished-BUILD report below, and [what is next](#task-synchronization-protocol).
 - Close out a finished BUILD task with a short summary and the files touched — created, changed, or deleted, as links. It reuses the file set the [review gate](#self-review-before-declaring-done-build--mandatory) already makes you declare: one list, two readers.
 - Low density, not just short: one idea per sentence, plain words, no stacked clauses. A brief paragraph can still be slow to read — length and density are separate faults.
 - Plain first, precise second — a reference is never the explanation. Lead with the plain statement, then the precise form for whoever needs it. An internal id (a task, a ticket, a commit) is a **pointer to an argument, not the argument**: check it by asking whether the sentence still says anything to a reader who cannot open what it names. (Cards and logs are reference material and keep the dense register — this governs replies.)
@@ -119,7 +119,13 @@ After the task is implemented and the build/tests are **green**, the BUILD sessi
 
 **When the review is human-only:** the task stays `IN_PROGRESS` with `Review: PENDING (<tier>)`. It is **not** `BLOCKED`. Replace `PENDING` with what ran only when a pass returns **no material findings**.
 
-**Recommending what is next — name the companion, or say there isn't one.** Give the next task *and* whichever task could safely run alongside it in another session: its `Depends On` are satisfied and its file set is **disjoint** from the first. "None" is a valid and often correct answer — never manufacture a pairing, since a fabricated one produces exactly the collision the review scoping rule exists to prevent.
+**Recommending what is next — one table: the cards that run together, then every other open card and what it waits on.** When asked what is next, answer with a table — *Card · Status · Run as · Why / what it waits on*:
+
+- **The pairing first**, one row each, with the reason it is safe: **BUILD**, the card for a BUILD session; **BUILD alongside**, a second card a parallel BUILD session can take; **SPEC**, a card whose next step is specification.
+- **Then every other open card** — `TODO`, `IN_PROGRESS`, `BLOCKED` — with what it waits on: a card id, a decision, or a file it shares with a pairing row or an `IN_PROGRESS` card. Run as is `running` for an `IN_PROGRESS` card, otherwise `—`; a card awaiting a human review says *review pending (<tier>)*. The board shows status, never this reason.
+- **Closed cards never appear.** Past about twelve rows, keep the pairing rows and group the rest by reason: *6 cards waiting on TASK-A*.
+
+Safe means its `Depends On` are satisfied and its file set is **disjoint** from the other pairing rows and from every `IN_PROGRESS` card — the same test the review gate uses to scope findings. Only a `TODO` card is proposed for a pairing row; a running BUILD is shown in its row, not proposed. **Never manufacture a pairing:** a row with no safe card reads *none — <reason>*, since a fabricated one produces exactly the collision the review scoping rule exists to prevent.
 
 ## Verification only a human can run — split it, don't park the card
 

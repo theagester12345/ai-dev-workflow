@@ -3,6 +3,28 @@
 Notable changes to **AI Dev Workflow (Community Edition)**. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); dates are `YYYY-MM-DD`.
 
+## [2026-10-29]
+
+### Fixed
+- **A project's own `AGENTS.md` is never overwritten.** Repos made with Lovable, Codex or Copilot
+  often keep their own `AGENTS.md`. Before this fix, the first commit that staged it ran the
+  pre-commit hook, which replaced it with the emitted copy of `WORKFLOW.md` and committed that
+  instead. An emitted file is now recognised by its first line (the `EMITTED Binding` marker),
+  never by its name: the emit refuses a file without it, `--force` included, and the hook stages
+  only the files the emit names (`emit-agents.sh --list`). Adopting such a repo says so in
+  `WORKORDER.md`. A test, `template/adapters/agents/emit-agents.test.sh`, holds it.
+- **README:** the request chain no longer mentions an outbox, which this edition does not ship;
+  the payload tree lists `bin/apply-updates.sh` and `skills/`.
+- **LICENSE:** the copyright holder is Peter Agada.
+
+### Changed
+- **"What is next" is one table.** The cards that can run together come first: a BUILD, a second
+  BUILD that can run beside it, and a card that needs specifying. Then come every other open card
+  and what it waits on, which the board does not show. An empty slot reads *none — reason*.
+- **Error codes are part of the API contract.** The backend keeps a registry of stable codes and
+  their meanings, and the error body carries `code`. A code is never reused, and changing what one
+  means is a breaking change.
+
 ## [2026-10-22]
 
 ### Added

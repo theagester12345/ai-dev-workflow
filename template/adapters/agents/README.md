@@ -20,7 +20,9 @@ bootstrap link between automatic discovery and the existing active-read ritual:
 
 `scaffold.sh` runs the emit after it copies and processes sources.
 
-**Keeping Bindings fresh (automatic):** `.githooks/pre-commit` re-runs emit with `--force` and stages the result whenever `WORKFLOW.md`, any `CLAUDE.md`, or any `AGENTS.md` is staged for commit. Humans and agents do not need to remember the script for the common case. Mid-session (before commit) you can still run:
+**An emitted file is recognised by its marker, never by its name.** Every Binding opens with the `⚙️ **EMITTED Binding**` line. An `AGENTS.md` without it is the project's own (Lovable, Codex and Copilot users write one): the emit refuses to overwrite it, `--force` included, and the hook never stages it. A host that reads only `AGENTS.md` then does not reach the workflow from that file; point it at `WORKFLOW.md` yourself if you want it to. `--list` prints the Bindings the emit owns, one path per line.
+
+**Keeping Bindings fresh (automatic):** `.githooks/pre-commit` re-runs emit with `--force` and stages the Bindings it names whenever `WORKFLOW.md`, any `CLAUDE.md`, or any `AGENTS.md` is staged for commit. Humans and agents do not need to remember the script for the common case. Mid-session (before commit) you can still run:
 
 ```bash
 # from a scaffolded project (script ships in adapters/):
