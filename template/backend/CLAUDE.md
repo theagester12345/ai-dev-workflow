@@ -2,6 +2,10 @@
 
 Project context for AI coding assistants.
 
+## Start here
+
+**Before any work, read [`ARCHITECT.md`](./ARCHITECT.md) and run its _Session Initialization_, whatever the first message says.** It ends with the receipt ([`../WORKFLOW.md` → Session start](../WORKFLOW.md#session-start)); no receipt, no work.
+
 ## Scope
 
 **Your workspace is `{{SIDE_DIR}}/`.** Edit only files here (+ root config if explicitly asked).

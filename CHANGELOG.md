@@ -3,6 +3,65 @@
 Notable changes to **AI Dev Workflow (Community Edition)**. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); dates are `YYYY-MM-DD`.
 
+## [2026-11-12]
+
+### Added
+- **A credential sweep for adopting a project** (`template/adapters/secret-sweep/`). It finds the
+  credentials a repository already holds, in the working tree, in the whole history and in paths you
+  name, and prints where each one sits, never its value or its line: every value is masked to two
+  characters and its length. Adopting an existing codebase now starts with it (`ADOPT.md`, step 0). A leaked
+  credential is replaced, not hidden: its owner rotates it, and the new value lives only in the
+  project's vault.
+- **`SAFETY.md`: what the workflow does on your machine,** in plain words: the three git hooks, every
+  program the scripts run, and the fact that nothing opens a network connection. A test in this repo
+  (`test/safety/`) scans the payload and fails when the code and the page disagree.
+- **Session start ends with a receipt.** Open a session with `ARCHITECT.md spec` or
+  `ARCHITECT.md build TASK-XXX`; initialization ends with one line naming the persona, the mode, the
+  files read and the counts in `TASK.md`. No receipt, no work. Each side's
+  `CLAUDE.md` now carries its own *Start here*.
+- **`apply-updates.sh --status` and `--all`.** `--status` lists which projects beside this repo are
+  behind and writes nothing; `--all` writes a workorder into each. The script now does the mechanical
+  part itself: adapters and hooks a project never edited are replaced, new ones copied, and the spine
+  is merged into `WORKFLOW.md.upgrade`, with nothing deleted or committed. A workorder somebody has
+  started is never overwritten without `--force`.
+- **This repo's own tests** under `test/`: the hook's guards (each allowed case paired with its near
+  miss), the update script's contract, and the safety page.
+
+### Changed
+- **The pre-commit hook commits only what you staged.** Generated files (each side's `AGENTS.md`, the
+  file index in `CLAUDE.md`) are built from the staged copy and written straight into the commit, and
+  refreshed only for the sides the commit touched, so another person's unstaged edits never ride along.
+- **The secret guard checks renamed files and added lines only.** A template renamed to `.env` is
+  caught, and deleting a committed secret, or editing next to one, is no longer blocked.
+- **What counts as a real env file, and the secret patterns, are defined once** in
+  `adapters/secret-sweep/`, read and checked by both the hook and the sweep. If one is missing or
+  unusable (a rule `grep` rejects, a set that no longer catches a known key), the hook refuses rather
+  than skip the check (every `.env*` file, or every commit, naming the file and `--no-verify`), and
+  the sweep refuses to run. An added line starting with `++` is checked too.
+- **The hook and the sweep read git's own diff, not the one you configured for reading.** An external
+  diff tool, a textconv driver, a `-diff` attribute, a diff-prefix or root-commit setting, or a path
+  git quotes (a non-ASCII name such as `configuración/.env`) no longer hides a key or an env file. A
+  file whose name holds a line break is refused, and every shipped key rule has its own run-time
+  sample, so a broken edit to any one of them is refused.
+- **"What is next" says what each card is:** the table's columns are now *Card · What it is ·
+  Run as · Waits on*.
+- **Smaller rules:** edit `TASK.md` by anchored replacement, never by writing back the whole file;
+  re-read the named card from the file before the first edit; a runbook only the user can run goes one
+  verified step at a time; "execute `UPGRADE_WORKORDER.md`" means plan, approval, then edits.
+
+### Fixed
+- **The credential sweep never reports a false all-clear.** A file it cannot read is named and the
+  run exits 2, and binary files (a lock file, a log holding a NUL) are read too.
+- **A path-limited commit (`git commit <path>`) leaves your index matching the commit.** The
+  regenerated `AGENTS.md` used to go into the commit but not into the index, so the next commit
+  quietly reverted it. The hook only writes git's lock when it holds this commit's entries, says so
+  when it cannot, and is unaffected by `GIT_GLOB_PATHSPECS` or `GIT_ICASE_PATHSPECS`.
+- An upgrade no longer strips the STARTER banner from a large new file that still has placeholders.
+- An upgrade never overwrites or deletes a `WORKFLOW.md.upgrade` whose conflicts you resolved, even
+  with `--force`; it lists it for you instead.
+- An upgrade no longer copies the workflow's own `*.test.sh` tests into a project, as scaffolding
+  never did; `--status` names a project stamped from another workflow repo as such.
+
 ## [2026-10-29]
 
 ### Fixed

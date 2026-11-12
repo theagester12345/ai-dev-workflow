@@ -1,0 +1,14 @@
+# Key-shaped credentials: one extended regular expression per line, named by the comment line
+# above it. The single list read by .githooks/pre-commit (every commit, added lines only) and by
+# adapters/secret-sweep/secret-sweep.sh (adoption: the tree, the whole history, named logs).
+# Add a rule here and both use it. Comment lines and blank lines are not patterns.
+# private-key
+-----BEGIN [A-Z ]*PRIVATE KEY-----
+# aws-access-key-id
+AKIA[0-9A-Z]{16}
+# slack-token
+xox[baprs]-[0-9A-Za-z-]{10,}
+# github-token
+gh[pousr]_[0-9A-Za-z]{20,}
+# api-key
+sk-[A-Za-z0-9]{20,}

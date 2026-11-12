@@ -25,7 +25,9 @@ Guide for SPEC mode sessions. See [WORKFLOW.md → Operating Modes](../WORKFLOW.
 1. Read [`../WORKFLOW.md`](../WORKFLOW.md) — the shared operating conventions that **govern this session** (the SPEC/BUILD boundary and its MUST-NOTs, task-sync, session-log). A link elsewhere is not enough — load the file so the rules are in context.
 2. Read [`TASK.md`](./TASK.md) — understand current state
 3. Review relevant documentation (`CLAUDE.md`, `SESSION_LOG.md`)
-4. Clarify requirements if ambiguous
+4. Once read, reply with the session receipt ([`../WORKFLOW.md` → Session start](../WORKFLOW.md#session-start)) as this side's persona ([`../STACK.md`](../STACK.md) → Persona), mode SPEC or BUILD (none declared → SPEC, and say so).
+
+After the receipt, clarify requirements if ambiguous.
 
 ## Task Creation Guidelines
 

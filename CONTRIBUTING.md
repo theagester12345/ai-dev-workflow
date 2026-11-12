@@ -28,6 +28,9 @@ Thank you for your interest in contributing! This is the community edition of th
    - Keep shell scripts POSIX-compatible where possible
    - Test on multiple shells/OS if changing scripts
 4. **Test your changes**
+   - Run the suites: `bash test/hooks/run.sh`, `bash test/updates/run.sh`, `bash test/safety/run.sh`,
+     `bash template/adapters/agents/emit-agents.test.sh`, `bash template/adapters/secret-sweep/secret-sweep.test.sh`
+   - A change to what the payload runs on a machine updates `template/SAFETY.md` in the same change
    - Run scaffold.sh bootstrap on a test project
    - Verify placeholders are substituted correctly
    - Check that templates remain valid markdown

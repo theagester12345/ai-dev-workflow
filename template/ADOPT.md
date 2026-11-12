@@ -13,6 +13,12 @@ Use this guide when adding the workflow to a project that already has code and d
 
 ## Procedure
 
+0. **The first card is a credential sweep**
+   - The workflow's secret rules stop new leaks; nothing has looked at what the project already holds — a password in a migration comment, a token in an old commit, a value in a shell history.
+   - File it on the side that owns the deploy, and run [`adapters/secret-sweep/`](./adapters/secret-sweep/README.md): the working tree, the whole history, and the shell, database-client and agent-log paths **the user names** (never a guess). Output is masked; nobody pastes a value anywhere.
+   - **Each high-risk find becomes its own card**, naming the owner's steps (rotate it, scrub their machine), with criteria checkable without the value.
+   - Re-run the sweep whenever a leak is suspected. A fresh bootstrap has no history to sweep and skips this.
+
 1. **Inventory existing structure**
    - What workspaces exist? (backend, frontend, both?)
    - What documentation exists? Where is it?
@@ -56,6 +62,7 @@ Use this guide when adding the workflow to a project that already has code and d
 
 ## Adoption Checklist
 
+- [ ] Credential sweep run; each high-risk find has its own card
 - [ ] All workspaces have CLAUDE.md with operating modes
 - [ ] TASK.md exists with canonical format
 - [ ] SESSION_LOG.md exists with protocol

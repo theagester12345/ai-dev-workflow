@@ -66,15 +66,18 @@ A scaffold is a snapshot. The template keeps improving, and without a way to car
 `bin/apply-updates.sh` closes that gap:
 
 ```bash
-./bin/apply-updates.sh ../my-project
+./bin/apply-updates.sh --status        # which projects beside this repo are behind; writes nothing
+./bin/apply-updates.sh ../my-project   # one project
+./bin/apply-updates.sh --all           # every project that is behind
 ```
 
-It writes an `UPGRADE_WORKORDER.md` **into that project** containing the exact `template/` diff since the project last synced. You then open the project in your agent and say *"execute UPGRADE_WORKORDER.md"* — it plans first, waits for your approval, and only then edits. It ports each change **conceptually** into your real, filled docs rather than pasting template text back over them.
+Projects are found by their `.workflow-sync` stamp in the folder this repo sits in (`--root DIR` to look elsewhere). For each one it writes an `UPGRADE_WORKORDER.md` **into that project** with the exact `template/` diff since the project last synced and the changelog sections that changed since then. The mechanical part is done for you: adapters and hooks the project never edited are replaced, new ones copied, and the spine is merged into `WORKFLOW.md.upgrade`. Nothing is deleted, and nothing is committed. You then open the project in your agent and say *"execute UPGRADE_WORKORDER.md"* — it plans first, waits for your approval, and only then edits. It ports the rest **conceptually** into your real, filled docs rather than pasting template text back over them.
 
 `bin/scaffold.sh` writes a `.workflow-sync` stamp recording the commit a project was made from, which is what makes each later run an exact diff rather than a guess. **Commit that file** — don't gitignore it.
 
 Two behaviours worth knowing:
 
+- **A workorder somebody has started is never overwritten** without `--force`. One nobody has touched (holding only the script's own changes) is replaced by the cumulative one.
 - **It refuses to run on a dirty checkout.** Updates are computed from committed history, so uncommitted template work would be silently skipped while the project got stamped as up to date. `--allow-dirty` is the deliberate override.
 - **A project with no stamp** (scaffolded before this existed) falls back to a catalog of changes rather than a diff, and this edition's changelog is written as release notes rather than as a machine-readable ledger — so the catalog will tell you it has nothing to list. Re-scaffolding over the project writes the stamp and makes every future run incremental.
 
@@ -85,18 +88,21 @@ ai-dev-workflow/                  # this repo
 ├── bin/scaffold.sh               # bootstrap / adopt
 ├── bin/apply-updates.sh          # carry template improvements into a scaffolded project
 ├── skills/                       # two review procedures that also work on their own (below)
+├── test/                         # this repo's own checks (never copied into a project)
 └── template/                     # everything stamped into a project
     ├── WORKFLOW.md               # the shared spine — conventions every side follows
     ├── BOOTSTRAP.md              # first-run guide + Principle→Binding table
     ├── ADOPT.md                  # retrofitting an existing codebase
     ├── STACK.md                  # this project's stack facts and commands
     ├── REVIEW.md                 # fallback review procedure (see the review gate)
+    ├── SAFETY.md                 # what the workflow does on your machine, checked by test/safety/
     ├── CONSOLIDATION.md          # keeping append-only docs from growing forever
     ├── WORKFLOW_CHANGELOG.md     # where you record convention changes you make
-    ├── .githooks/                # secret guard, commit-message rules, binding refresh
+    ├── .githooks/                # secret and env-file guard, commit-message rules, binding refresh
     ├── adapters/
     │   ├── agents/               # emits the AGENTS.md tree from the authored sources
-    │   └── index/                # generates the per-workspace file index
+    │   ├── index/                # generates the per-workspace file index
+    │   └── secret-sweep/         # finds credentials a project already holds, never printing one; the hook's rules
     ├── backend/                  # CLAUDE.md · ARCHITECT.md · TASK.md · SESSION_LOG.md
     └── frontend/                 # the same, plus mockups/ for the UI design gate
 ```

@@ -27,7 +27,12 @@ bash adapters/index/emit-index.sh --target . # explicit project root
 
 Run this **before** `adapters/agents/emit-agents.sh`. `AGENTS.md` is compiled from `CLAUDE.md`, so
 emitting agents first bakes a stale index into the Binding. `.githooks/pre-commit` runs them in that
-order, and `scaffold.sh` does the same at bootstrap.
+order, and `scaffold.sh` does the same at bootstrap. The hook refreshes the index only of each side
+the commit touched (`--only <ws>`), so a side another session is editing is never rewritten under it,
+and commits only the `CLAUDE.md` files the commit already staged; a refreshed listing in an unstaged one waits
+for the next commit that stages it. What it commits is the **staged** copy with the refreshed
+listing put in (`emit-index.sh --render <dir>`, source on stdin), written straight into the index,
+so hunks left unstaged stay in the working tree and out of the commit.
 
 ## Why a script and not the agent
 

@@ -2,6 +2,16 @@
 
 The single source for conventions that apply across all workspaces. Each workspace's `CLAUDE.md` references this file instead of duplicating rules.
 
+## Session start
+
+**Open a session in the side's folder with `ARCHITECT.md spec` or `ARCHITECT.md build TASK-XXX`.** Naming the file works on any host; a bare `spec` only where the host loaded the side's Start here. For `build TASK-XXX`: receipt, then the task. **`ARCHITECT.md`'s _Session Initialization_ ends with this receipt:**
+
+`<Name> online — mode: <MODE>. Read <n> files: <list>. TASK.md: <t> to do, <p> in progress[, <k> review pending]. Last log entry: <date>.[ Upgrade pending — run it from the project root.]`
+
+*Upgrade pending* appears only when `UPGRADE_WORKORDER.md` sits at the project root — a reminder, never an invitation to start the work.
+
+**No receipt, no work:** send the opener again. The receipt proves initialization ran, not that a rule was followed.
+
 ## Instruction precedence
 
 When two instructions disagree, **do not invent a tie-break ad-hoc.** Resolve by this ladder. Higher on this list constrains lower. A lower layer may **narrow** a higher one; it may **never widen** a higher one (grant a write scope denies, skip the review gate, treat plan-approval as BUILD authorization, or exit SPEC into source edits).
@@ -59,6 +69,8 @@ Every session runs in ONE mode, declared at session start. If none is declared, 
 
 > **Version control is user-gated — never autonomous.** `git commit` and `git push` are **NOT** part of the BUILD flow. Don't commit or push on your own initiative — **not** after a task is COMPLETED, **not** after tests/build go green. Completing a task ≠ permission to commit. Stop at a clean, verified working tree and **wait for the user's explicit command** to commit; pushing is a separate explicit command again. (Applies in every mode.)
 
+> **A runbook only the user can run goes one step at a time** — a deploy, a migration against a shared database, a secret rotation: give one step, wait for its output, verify it, record the checkpoint on the card, then give the next. A step that shows the runbook wrong is corrected on the card in place.
+
 > **Commit messages describe the change — not the coding agent.** Do not add trailers or lines that attribute, advertise, or co-author the commit to the AI host or coding agent (for example a `Co-authored-by:` naming the tool). Human co-authors remain fine. Enforcement (dependency-free, under [`.githooks/`](./.githooks/)): `prepare-commit-msg` **strips** known agent/host attribution trailers some hosts inject automatically; `commit-msg` **rejects** the commit if any remain. Same portable layer as the secret guard.
 
 ## Self-review before declaring done (BUILD — MANDATORY)
@@ -106,6 +118,7 @@ After the task is implemented and the build/tests are **green**, the BUILD sessi
 - Ensure no other agent is on the same task
 - Move task to `IN_PROGRESS`
 - Verify `Depends On` are `COMPLETED`
+- Re-read the named card from the file before the first edit, even one this session wrote — a parallel session may have refined it
 
 **During work:**
 - Keep it `IN_PROGRESS` until all acceptance criteria met
@@ -119,13 +132,15 @@ After the task is implemented and the build/tests are **green**, the BUILD sessi
 
 **When the review is human-only:** the task stays `IN_PROGRESS` with `Review: PENDING (<tier>)`. It is **not** `BLOCKED`. Replace `PENDING` with what ran only when a pass returns **no material findings**.
 
-**Recommending what is next — one table: the cards that run together, then every other open card and what it waits on.** When asked what is next, answer with a table — *Card · Status · Run as · Why / what it waits on*:
+**Edit `TASK.md` by anchored replacement**, never by writing back the whole file from an earlier read: that drops a card a parallel session added in between.
 
-- **The pairing first**, one row each, with the reason it is safe: **BUILD**, the card for a BUILD session; **BUILD alongside**, a second card a parallel BUILD session can take; **SPEC**, a card whose next step is specification.
-- **Then every other open card** — `TODO`, `IN_PROGRESS`, `BLOCKED` — with what it waits on: a card id, a decision, or a file it shares with a pairing row or an `IN_PROGRESS` card. Run as is `running` for an `IN_PROGRESS` card, otherwise `—`; a card awaiting a human review says *review pending (<tier>)*. The board shows status, never this reason.
+**Recommending what is next — one table: the cards that run together, then every other open card and what it waits on.** Read `TASK.md` first, every time, never from memory. Answer with a table — *Card · What it is · Run as · Waits on*. **What it is** is the card's title; **Waits on** is a few words, never a sentence: a card id, a decision, *your go*, *disjoint from TASK-x* on a pairing row. There is no Status column: *Run as* shows `running`, *Waits on* shows blocked or *review pending (<tier>)*.
+
+- **The pairing first**, one row each, its *Waits on* saying why it is safe: **BUILD**, the card for a BUILD session; **BUILD alongside**, a second card a parallel BUILD session can take; **SPEC**, a card not yet startable without hunting, its *Waits on* saying what SPEC must pin down. **Run as** names a mode, never a person.
+- **Then every other open card** — `TODO`, `IN_PROGRESS`, `BLOCKED` — with what it waits on: a card id, a decision, or a file it shares with a pairing row or an `IN_PROGRESS` card. Run as is `running` for an `IN_PROGRESS` card, otherwise `—`.
 - **Closed cards never appear.** Past about twelve rows, keep the pairing rows and group the rest by reason: *6 cards waiting on TASK-A*.
 
-Safe means its `Depends On` are satisfied and its file set is **disjoint** from the other pairing rows and from every `IN_PROGRESS` card — the same test the review gate uses to scope findings. Only a `TODO` card is proposed for a pairing row; a running BUILD is shown in its row, not proposed. **Never manufacture a pairing:** a row with no safe card reads *none — <reason>*, since a fabricated one produces exactly the collision the review scoping rule exists to prevent.
+Safe means its `Depends On` are satisfied and its file set is **disjoint** from the other pairing rows and from every `IN_PROGRESS` card — the same test the review gate uses to scope findings: work that cannot be reviewed separately should not run concurrently. Only a `TODO` card is proposed for a pairing row; a running BUILD fills the BUILD row as `running`, and the other pairing rows must be disjoint from it. **Never manufacture a pairing:** a row with no safe card reads *none — <reason>*, since a fabricated one produces exactly the collision the review scoping rule exists to prevent.
 
 ## Verification only a human can run — split it, don't park the card
 
@@ -180,7 +195,7 @@ These rules are **tracker-agnostic**. The concrete tool (if any) is a **Binding*
 - **One card per task, zero duplicates:** correlate on a deterministic external id.
 - **Refuse duplicate source ids.** Two blocks in the source file carrying one id is a **parse error** — refused before any write, in dry-run as much as live. Otherwise it creates two cards for one id and every later run updates whichever the index returns.
 - **A one-way mirror must be able to refuse a destructive write, not merely narrate one.** An update landing on a card the source file did not author replaces it silently, and the mirror never reads back to notice. Fail rather than proceed — and the check must fire on an artifact the run actually observed, not one it assumed.
-- **Removal propagates.** A task deleted from the source is **deleted from the board** on the next run: a card the source no longer declares is stale, not extra, and leaving it makes the mirror disagree with the source silently. Dry-run must list every deletion first, and a run that parses **zero** tasks must refuse to delete anything — that is a misconfigured path, never a request to empty the board.
+- **Removal propagates.** A task deleted from the source is **deleted from the board** on the next run: a card the source no longer declares is stale, not extra, and leaving it makes the mirror disagree with the source silently. Dry-run must list every deletion first, and a *delete* your edit did not make is a stop; a run that parses **zero** tasks must refuse to delete anything — that is a misconfigured path, never a request to empty the board.
 - **Scoped writes:** only touch issues carrying your workflow's source marker; never modify or delete anything else.
 - **Idempotent:** a second run with no `TASK.md` change must write nothing.
 
@@ -237,6 +252,12 @@ Side Bindings (paths, checklist file, mock folder layout) live in that side's `C
 
 ---
 
+## Workflow sync workorders
+
+**"Execute `UPGRADE_WORKORDER.md`" authorizes the process, not a silent jump to edits:** publish a plan of what the workorder asks (which changes, which files, deliberate skips), wait for its explicit approval, then implement only what was approved. It runs from the project root; a side session that finds one reports it and stops.
+
+---
+
 ## Secrets & environment
 
 Secrets must never enter agent context. The contract is `.env.example` (variable **names**); the real `.env` (values) is off-limits.
@@ -245,6 +266,7 @@ Secrets must never enter agent context. The contract is `.env.example` (variable
 
 - **Read `.env.example`, never `.env`/`.env.*` values.** Need a var that's missing? Add its **name** to `.env.example` and ask the user to fill `.env`.
 - **Never print, paste, echo, or commit a secret value** — refer to it by variable name.
+- **A leaked credential is replaced, not hidden:** the owner rotates it (user-gated) and the new value lives only in the project's vault, never in a file or a card. Adopting an existing project starts with a credential sweep ([`adapters/secret-sweep/`](./adapters/secret-sweep/README.md)) that prints where a secret sits, never its value. The sweep and the pre-commit hook read the same rule files there (`patterns.txt`, `env-files.txt`); a missing one makes the hook stricter, never off.
 - **Run, don't read.** Commands load env at runtime, so you never open the file to make them work.
 - **Best of all, keep secrets out of a readable file** — injected env vars, an OS keychain, or a secrets manager. `.env` is a dev-only convenience, **untrusted-by-agents**.
 

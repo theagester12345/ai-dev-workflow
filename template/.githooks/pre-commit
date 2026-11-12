@@ -7,7 +7,8 @@
 # 2) AGENTS.md Binding sync: if WORKFLOW.md / CLAUDE.md / AGENTS.md is staged,
 #    re-emit AGENTS.md from sources and stage the result (principle 3 — no relying
 #    on humans remembering to run emit-agents.sh). A project's own AGENTS.md (no
-#    EMITTED Binding marker) is never rewritten or staged.
+#    EMITTED Binding marker) is never rewritten or staged, and nothing is staged that
+#    this commit did not stage itself or the source of.
 #
 # Bypass (false positive): git commit --no-verify
 # For thorough secret scanning, add gitleaks: https://github.com/gitleaks/gitleaks
@@ -15,24 +16,130 @@
 set -eu
 
 fail=0
-staged=$(git diff --cached --name-only --diff-filter=AM)
+# Every path this hook hands git is a name git listed, never a pattern the user typed (git commit has
+# already read those). GIT_GLOB_PATHSPECS and GIT_ICASE_PATHSPECS would change what such a name
+# matches, and check-ignore refuses to run under them at all: its failure would read as "not ignored",
+# and a Binding excluded from the repo would be staged.
+unset GIT_GLOB_PATHSPECS GIT_ICASE_PATHSPECS
+# Git's output is read as git writes it for scripts, never as the user configured it for reading.
+# Paths: git quotes a non-ASCII name ("configuraci\303\263n/.env"), and the env-file rule never
+# matches a quoted one, so names are listed NUL-separated, which git never quotes. Diffs: an
+# external diff tool (diff.external, GIT_EXTERNAL_DIFF) or a textconv driver replaces the +/- lines
+# the guard reads, so a staged key would commit unseen: every diff read here is git's own. A -diff
+# (binary) attribute, common on lock files, prints "Binary files differ" instead: --text prints the lines.
+DIFF="--no-ext-diff --no-textconv --text"
+# Renamed and copied files count (R, C): a template renamed to .env, or a doc moved within a
+# side, is as much this commit's as an edit. Each is listed by its new path.
+staged=$(git diff --cached --name-only -z --diff-filter=ACMR | tr '\0' '\n')
 
-# 1) Never commit a real env file. Allow templates: .env.example / .sample / .template / .dist
+# A path-limited commit (`git commit <path>`) runs this hook on a temporary index, while git keeps
+# the real index's next state in index.lock and installs it after the commit. What the hook writes
+# to the temporary index alone goes into the commit but not the real index, which then holds the old
+# copy, and the next commit quietly reverts it. real_index repeats a write there, only
+# under git's own partial-commit index (next-index-*.lock), which git creates together with that
+# index.lock: a plain, -a or -i commit already runs on the real index, and under a user's own
+# GIT_INDEX_FILE an index.lock belongs to some other process and is never written.
+# A path-limited commit under a user's own GIT_INDEX_FILE still runs on next-index-*.lock, but git's
+# lock is then <own index>.lock, which the hook cannot see, and .git/index.lock is another process's
+#. So the lock is written only when its entry for every path in this commit equals the
+# temporary index's, checked once, before the hook writes anything; otherwise the hook says that
+# index keeps the old copies, and why. The check lists each index once, whole, and filters both to
+# the commit's paths, so it costs three git calls however many paths the commit holds.
+ri=""; ri_stale=""
+ri_ours() {  # $1 = candidate lock → 0 when it holds this commit's entries
+  # One path per line: a name holding a line break is refused by step 1, so it never commits.
+  # Each listing goes to a file before tr, so a git failure is seen, not hidden by the pipe.
+  t=$(mktemp -d) || return 1; r=1
+  if git diff --cached --name-only -z > "$t/p0" && tr '\0' '\n' < "$t/p0" > "$t/p" && [ -s "$t/p" ] &&
+     git ls-files -s -z > "$t/a0" && GIT_INDEX_FILE="$1" git ls-files -s -z > "$t/b0"; then
+    for f in a b; do
+      tr '\0' '\n' < "$t/${f}0" |
+        awk 'NR == FNR { want[$0] = 1; next } { p = $0; sub(/^[^\t]*\t/, "", p) } p in want' "$t/p" - > "$t/$f" ||
+        { rm -rf "$t"; return 1; }   # two empty results would compare equal: an error rejects the lock
+    done
+    cmp -s "$t/a" "$t/b" && r=0
+  fi
+  rm -rf "$t"; return "$r"
+}
+case "${GIT_INDEX_FILE:-}" in
+  */next-index-*.lock|next-index-*.lock)
+    ri="$(git rev-parse --absolute-git-dir)/index.lock"
+    # Git's own path-limited commit always holds .git/index.lock; with none there, git's lock is the
+    # user's own index's.
+    if [ ! -f "$ri" ]; then ri=""; ri_stale=absent
+    elif ! ri_ours "$ri" 2>/dev/null; then ri=""; ri_stale=foreign; fi ;;
+esac
+real_index() {
+  if [ -n "$ri" ]; then GIT_INDEX_FILE="$ri" git "$@"; return; fi
+  case "$ri_stale" in
+    absent) why="git's lock for this commit is not .git/index.lock, so the commit runs on your own GIT_INDEX_FILE" ;;
+    foreign) why=".git/index.lock does not hold this commit's entries (another process holds it, or the commit runs on your own GIT_INDEX_FILE), so the hook leaves it alone" ;;
+    *) return 0 ;;
+  esac
+  ri_stale=warned
+  echo "⚠ pre-commit: $why. What the hook regenerates (AGENTS.md, the file index in CLAUDE.md) is committed, but the index this commit came from keeps the old copies: git add them after the commit."
+}
+
+# 1) Never commit a real env file. What counts as one (and which suffixes are templates) is defined
+#    once, in the file the adoption sweep reads too. Without it the guard gets stricter,
+#    never off: every .env* file is refused, templates included, and the commit says why.
+#    The file is read, and its rules checked against known names, by the one reader the sweep uses
+#    too (env-files.sh): a malformed rule is never trusted as one that matches nothing.
+envdir="$(git rev-parse --show-toplevel)/adapters/secret-sweep"
+ENV_RE=""; TPL_RE=""
+if [ -f "$envdir/env-files.sh" ] && . "$envdir/env-files.sh" && env_files_load "$envdir/env-files.txt"; then
+  env_re=$ENV_RE; tpl_re=$TPL_RE
+else
+  echo "⚠ adapters/secret-sweep/env-files.txt is missing or malformed (or its reader, env-files.sh), so every .env* file is refused, templates included. Fix: run the workflow's apply-updates (it copies the file), or restore it from the workflow template."
+  env_re='(^|/)\.env[^/]*$'; tpl_re='^$'
+fi
 bad=$(printf '%s\n' "$staged" \
-  | grep -E '(^|/)\.env(\.[^/]+)?$' \
-  | grep -vE '\.(example|sample|template|dist)$' || true)
+  | grep -E "$env_re" \
+  | grep -vE "$tpl_re" || true)
+# A name holding a newline splits into two lines above (".env.example<LF>foo" reads as a template and
+# "foo"), so no rule can judge it. No real file needs one: refused outright.
+if git diff --cached --name-only -z --diff-filter=ACMR | tr '\n\0' '\001\n' | grep -q "$(printf '\001')"; then
+  echo "✖ refusing to commit a file whose name holds a line break — rename it."
+  fail=1
+fi
 if [ -n "$bad" ]; then
   echo "✖ refusing to commit env file(s) — secrets belong in a gitignored .env; commit a template (.env.example) instead:"
-  printf '    %s\n' $bad
+  printf '%s\n' "$bad" | while IFS= read -r b; do printf '    %s\n' "$b"; done
   fail=1
 fi
 
-# 2) High-signal secret patterns in staged additions (private keys, cloud keys, common tokens)
-if git diff --cached -U0 --no-color \
-   | grep -nE '(-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|xox[baprs]-[0-9A-Za-z-]{10,}|gh[pousr]_[0-9A-Za-z]{20,}|sk-[A-Za-z0-9]{20,})' >/dev/null 2>&1; then
-  echo "✖ a staged change looks like it contains a secret (private key / cloud key / API token)."
+# 2) High-signal secret patterns in staged additions (private keys, cloud keys, common tokens).
+#    Added lines only: a removed line is a secret being cleaned up, and git prints the line before
+#    each hunk in its @@ header, so a committed secret above an edit would otherwise match.
+#    A renamed file is read against its old path (-M, whatever diff.renames says), so a secret it
+#    already held is not counted as added again.
+#    The patterns live in one file the adoption sweep reads too, read and checked by the one reader
+#    the sweep uses too (patterns.sh): carriage returns stripped, a rule grep rejects refused, and
+#    the set must still catch a known key. A missing, empty or unusable file refuses the commit, as
+#    a missing env-file definition does: a guard that cannot check never reads as one that found
+#    nothing. No built-in copy of the patterns: that would be a second source.
+secdir="$(git rev-parse --show-toplevel)/adapters/secret-sweep"
+pat=$(mktemp); added=$(mktemp)
+if [ -f "$secdir/patterns.sh" ] && . "$secdir/patterns.sh" && patterns_load "$secdir/patterns.txt" "$pat"; then
+  awk -F '\t' '{ sub(/^[^\t]*\t/, ""); print }' "$pat" > "$pat.re"
+  # Only lines a hunk adds: the "+++ b/<path>" header comes before the first @@, so it is told apart
+  # by position, never by prefix (an added line starting with "++" reads "+++" too).
+  # shellcheck disable=SC2086
+  git diff --cached -M -U0 --no-color $DIFF | awk '/^diff --git / { h = 1; next } /^@@/ { h = 0; next } !h && /^\+/' > "$added"
+  rc=0; grep -E -f "$pat.re" "$added" >/dev/null 2>&1 || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    echo "✖ a staged change looks like it contains a secret (private key / cloud key / API token)."
+    fail=1
+  elif [ "$rc" -ne 1 ]; then
+    echo "✖ the secret patterns could not be checked (grep exit $rc) — refusing rather than letting a key through."
+    fail=1
+  fi
+else
+  echo "✖ adapters/secret-sweep/patterns.txt is missing, empty or unusable (or its reader, patterns.sh): a rule grep rejects, or a set that no longer catches a known key. Secrets cannot be checked, so the commit is refused."
+  echo "  Fix: run the workflow's apply-updates (it copies the files), or restore them from the workflow template. To commit anyway, once: git commit --no-verify"
   fail=1
 fi
+rm -f "$pat" "$pat.re" "$added"
 
 # 3) Keep AGENTS.md Bindings in sync with authored sources (WORKFLOW.md / CLAUDE.md)
 emit_needed=0
@@ -47,31 +154,90 @@ if [ "$emit_needed" -eq 1 ]; then
     echo "  Copy it from the workflow template (adapters/agents/) or re-run scaffold."
     fail=1
   else
-    # The file index compiles INTO CLAUDE.md and AGENTS.md compiles FROM it, so
-    # refresh the index first or the Binding bakes in a stale listing.
+    # Only what this commit already staged goes in. A side's CLAUDE.md, or a Binding whose
+    # source is not in the commit, would carry docs nobody staged — every side's docs, in a
+    # project that adopted the workflow and has not committed it yet.
+    is_staged() { printf '%s\n' "$staged" | grep -Fxq -- "$1"; }
+
+    # What goes in is built from the STAGED copy and written straight into the index, never
+    # `git add`ed from the working tree: a source staged in part would otherwise carry its
+    # unstaged hunks — another session's notes — into this commit. The working
+    # tree is still refreshed as before, so the unstaged hunks stay exactly where they were.
+    work=$(mktemp -d); trap 'rm -rf "$work"' EXIT
+    to_index() {  # $1 = path, $2 = file holding its new content
+      mode=$(git ls-files -s -- "$1" | awk '{print $1; exit}')
+      ci="${mode:-100644},$(git hash-object -w --no-filters -- "$2"),$1"
+      git update-index --add --cacheinfo "$ci"
+      real_index update-index --add --cacheinfo "$ci"
+    }
+
+    # The working-tree refresh is scoped to what this commit touched: a side with a staged file,
+    # and the root when WORKFLOW.md or AGENTS.md is staged. In a checkout shared by parallel
+    # sessions, a side the commit did not touch is another session's to change.
+    # A first commit of the workflow stages every source, so it still refreshes everything.
+    touched=$(printf '%s\n' "$staged" | while IFS= read -r p; do
+      case "$p" in */*) d=${p%%/*}; [ -f "$d/CLAUDE.md" ] && printf '%s\n' "$d" ;; esac
+    done | sort -u)
+    root_touched=0
+    { is_staged WORKFLOW.md || is_staged AGENTS.md; } && root_touched=1
+    index_only=""; agents_only=""
+    for d in $touched; do index_only="$index_only --only $d"; agents_only="$agents_only --only $d/AGENTS.md"; done
+    [ "$root_touched" -eq 1 ] && agents_only="$agents_only --only AGENTS.md"
+
+    # The file index is compiled INTO CLAUDE.md, and AGENTS.md is compiled FROM
+    # CLAUDE.md — so the index must be refreshed first or the Binding bakes in a
+    # stale listing. Missing adapter is not fatal here: the index is a convenience,
+    # unlike the AGENTS Binding below, which is a correctness requirement.
     if [ -f adapters/index/emit-index.sh ]; then
-      bash adapters/index/emit-index.sh >/dev/null 2>&1 || \
-        echo "  ! emit-index.sh failed — file index may be stale"
+      # Word-split on purpose: workspace names are folder names without spaces.
+      # shellcheck disable=SC2086
+      if [ -n "$index_only" ]; then
+        bash adapters/index/emit-index.sh $index_only >/dev/null 2>&1 || \
+          echo "  ! emit-index.sh failed — file index may be stale"
+      fi
       for cl in */CLAUDE.md; do
-        [ -f "$cl" ] || continue
-        git add -- "$cl"
+        [ -f "$cl" ] && is_staged "$cl" || continue
+        git show ":$cl" > "$work/src" &&
+          bash adapters/index/emit-index.sh --render "${cl%/CLAUDE.md}" < "$work/src" > "$work/out" ||
+          { echo "  ! could not refresh the index in the staged $cl — committed as staged"; continue; }
+        cmp -s "$work/src" "$work/out" || to_index "$cl" "$work/out"
       done
     fi
 
     echo "▶ pre-commit: re-emitting AGENTS.md from authored sources…"
-    if ! emitted=$(bash "$emit_script" --force --list); then
+    # shellcheck disable=SC2086
+    if [ -z "$agents_only" ]; then
+      : > "$work/emitted"   # nothing this commit touched has a Binding
+    elif ! bash "$emit_script" --force --list $agents_only > "$work/emitted"; then
       echo "✖ emit-agents.sh failed — fix the emit error before committing."
       fail=1
     else
       # Include regenerated Bindings in this commit (deterministic; never hand-edited). Only the
       # paths the emitter names: an AGENTS.md without its marker is the project's own, and staging
       # it would commit edits its owner never staged.
-      # A Binding the project ignores is skipped, not added: `git add` of an ignored path fails
-      # and would abort the commit.
-      printf '%s\n' "$emitted" | while IFS= read -r agents; do
+      # A Binding the project ignores is skipped, not added: the project chose to keep it out of
+      # its history, and `git add` of an ignored path fails and would abort the commit.
+      # A Binding goes in only with its source (AGENTS.md ← WORKFLOW.md, <side>/AGENTS.md ←
+      # <side>/CLAUDE.md) or when it was staged itself, and it is compiled from the source as this
+      # commit holds it, so the committed pair always matches.
+      while IFS= read -r agents; do
         if [ -z "$agents" ] || git check-ignore -q -- "$agents"; then continue; fi
-        git add -- "$agents"
-      done
+        case "$agents" in
+          AGENTS.md) src=WORKFLOW.md ;;
+          *) src="${agents%AGENTS.md}CLAUDE.md" ;;
+        esac
+        is_staged "$src" || is_staged "$agents" || continue
+        if ! git show ":$src" > "$work/src" 2>/dev/null; then
+          echo "✖ $agents is staged but its source $src is not in the commit — stage $src, or unstage $agents."
+          fail=1; continue
+        fi
+        if bash "$emit_script" --render "$agents" < "$work/src" > "$work/out"; then
+          to_index "$agents" "$work/out"
+        else
+          echo "✖ emit-agents.sh could not compile $agents from the staged $src."
+          fail=1
+        fi
+      done < "$work/emitted"
     fi
   fi
 fi

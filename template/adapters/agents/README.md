@@ -11,18 +11,13 @@
 
 Same-altitude disagreement is **drift** — fix the source and re-emit. Do not rank `AGENTS.md` above or below `CLAUDE.md`.
 
-Workspace outputs add one generated **Start here** preamble before the copied
-`CLAUDE.md` body. It directs an automatically booted agent to read
-`ARCHITECT.md` and execute its required initialization. This is the missing
-bootstrap link between automatic discovery and the existing active-read ritual:
-`AGENTS.md` gets the agent through the door; `ARCHITECT.md` loads
-`WORKFLOW.md`, `CLAUDE.md`, task state, history, and peer context.
+**Start here** is authored in each side's `CLAUDE.md`, not added by the emit, so `CLAUDE.md` and `AGENTS.md` carry the same line and cannot disagree. It sends an automatically loaded agent to `ARCHITECT.md` and its required initialization.
 
 `scaffold.sh` runs the emit after it copies and processes sources.
 
 **An emitted file is recognised by its marker, never by its name.** Every Binding opens with the `⚙️ **EMITTED Binding**` line. An `AGENTS.md` without it is the project's own (Lovable, Codex and Copilot users write one): the emit refuses to overwrite it, `--force` included, and the hook never stages it. A host that reads only `AGENTS.md` then does not reach the workflow from that file; point it at `WORKFLOW.md` yourself if you want it to. `--list` prints the Bindings the emit owns, one path per line.
 
-**Keeping Bindings fresh (automatic):** `.githooks/pre-commit` re-runs emit with `--force` and stages the Bindings it names whenever `WORKFLOW.md`, any `CLAUDE.md`, or any `AGENTS.md` is staged for commit. Humans and agents do not need to remember the script for the common case. Mid-session (before commit) you can still run:
+**Keeping Bindings fresh (automatic):** `.githooks/pre-commit` re-runs emit with `--force` whenever `WORKFLOW.md`, any `CLAUDE.md`, or any `AGENTS.md` is staged for commit, for the Bindings of the sides the commit touched only (`--only <path>`; the root's when `WORKFLOW.md` or `AGENTS.md` is staged), so a side another session is editing is left alone in the working tree too. It stages a Binding only with its source (`AGENTS.md` with `WORKFLOW.md`, a side's with its `CLAUDE.md`) or when the Binding was staged itself, so a commit never carries docs nobody staged. The committed Binding is compiled from the source **as this commit holds it** (`emit-agents.sh --render <path>`, the staged source on stdin) and written straight into the index, so it matches its committed source even when part of the source was left unstaged; the hook never `git add`s an authored source. Humans and agents do not need to remember the script for the common case. Mid-session (before commit) you can still run:
 
 ```bash
 # from a scaffolded project (script ships in adapters/):

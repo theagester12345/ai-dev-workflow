@@ -1,0 +1,9 @@
+# What counts as a real env file: one extended regular expression per rule, named by the comment
+# line above it. The single definition read by .githooks/pre-commit (never commit one) and by
+# adapters/secret-sweep/secret-sweep.sh (never read one; name it when history holds it).
+# A path is a real env file when it matches env-file and does not match template-suffix.
+# Add a template suffix here and both follow it. Comment lines and blank lines are not rules.
+# env-file
+(^|/)\.env(\.[^/]+)?$
+# template-suffix
+\.(example|sample|template|dist)$

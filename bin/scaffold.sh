@@ -256,6 +256,7 @@ copy_if_missing "$TEMPLATE_DIR/STACK.md" "$TARGET/STACK.md"
 copy_if_missing "$TEMPLATE_DIR/BOOTSTRAP.md" "$TARGET/BOOTSTRAP.md"   # Principle→Binding table (both modes)
 copy_if_missing "$TEMPLATE_DIR/WORKFLOW.md" "$TARGET/WORKFLOW.md"                 # shared operating conventions; stays in the project
 copy_if_missing "$TEMPLATE_DIR/REVIEW.md" "$TARGET/REVIEW.md"                     # fallback review procedure
+copy_if_missing "$TEMPLATE_DIR/SAFETY.md" "$TARGET/SAFETY.md"                     # what the workflow does on a machine
 copy_if_missing "$TEMPLATE_DIR/CONSOLIDATION.md" "$TARGET/CONSOLIDATION.md"       # stays in the project
 copy_if_missing "$TEMPLATE_DIR/WORKFLOW_CHANGELOG.md" "$TARGET/WORKFLOW_CHANGELOG.md"  # upstream log; stays in the project
 if [ "$MODE" = adopt ]; then copy_if_missing "$TEMPLATE_DIR/ADOPT.md" "$TARGET/ADOPT.md"; fi
@@ -311,6 +312,19 @@ if [ -d "$TEMPLATE_DIR/.githooks" ]; then
   if git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1; then
     git -C "$TARGET" config core.hooksPath .githooks 2>/dev/null || true
   fi
+fi
+
+# ---- secret sweep (the pre-commit hook reads its pattern and env-file lists) ----
+# Copied whole, file by file, so whatever the folder ships reaches the project; without
+# it the hook refuses every commit and says which file is missing.
+if [ -d "$TEMPLATE_DIR/adapters/secret-sweep" ]; then
+  mkdir -p "$TARGET/adapters/secret-sweep"
+  while IFS= read -r -d '' sf; do
+    base=$(basename "$sf")
+    case "$base" in *.test.sh) continue ;; esac   # the payload's own tests stay in the workflow repo
+    copy_if_missing "$sf" "$TARGET/adapters/secret-sweep/$base"
+    case "$base" in *.sh) chmod +x "$TARGET/adapters/secret-sweep/$base" 2>/dev/null || true ;; esac
+  done < <(find "$TEMPLATE_DIR/adapters/secret-sweep" -maxdepth 1 -type f -print0)
 fi
 
 # ---- AGENTS.md tree (Binding emit — one source, compile per tool) ----
@@ -375,7 +389,7 @@ candidates() {
   local f base
   while IFS= read -r -d '' f; do
     base=$(basename "$f")
-    case "$base" in README.md|BOOTSTRAP.md|ADOPT.md|STACK.md|WORKFLOW.md|AGENTS.md|REVIEW.md|WORKORDER.md|CONSOLIDATION.md|WORKFLOW_CHANGELOG.md|CHANGELOG.md|PULL_WORKORDER.md|HARVEST_WORKORDER.md) continue;; esac
+    case "$base" in README.md|BOOTSTRAP.md|ADOPT.md|STACK.md|WORKFLOW.md|AGENTS.md|REVIEW.md|SAFETY.md|WORKORDER.md|CONSOLIDATION.md|WORKFLOW_CHANGELOG.md|CHANGELOG.md|PULL_WORKORDER.md|HARVEST_WORKORDER.md) continue;; esac
     echo "- \`${f#"$TARGET"/}\` (root-level doc — which workspace?)"
   done < <(find "$TARGET" -maxdepth 1 -type f -name '*.md' -print0 2>/dev/null)
   if [ "$MODE" = adopt ] && [ -d "$TARGET/docs" ]; then
@@ -409,7 +423,8 @@ agent_doc=$([ "$MODE" = adopt ] && echo "ADOPT.md" || echo "BOOTSTRAP.md")
   echo "- Mode: **$MODE** · Workspaces: \`$WORKSPACES\` · Detected stack: **$DETECTED**"
   echo "- Created: ${#COPIED[@]} file(s) · left untouched (already present): ${#SKIPPED[@]} _(never overwrites)_ · **fully resolved by the script (agent can skip): ${#RESOLVED[@]}**"
   # The emitter refuses an AGENTS.md without its marker; say so here, so the agent leaves it alone too.
-  if [ -f "$TARGET/AGENTS.md" ] && ! head -n 1 "$TARGET/AGENTS.md" | grep -qF 'EMITTED Binding'; then
+  # A shell comparison, never `| grep -q`: under pipefail grep quitting early can fail the writer.
+  if [ -f "$TARGET/AGENTS.md" ] && [[ $(head -n 1 "$TARGET/AGENTS.md") != *'EMITTED Binding'* ]]; then
     echo "- \`AGENTS.md\` is the project's own (no EMITTED Binding marker): never overwritten or re-emitted, so a host that reads only \`AGENTS.md\` does not reach the workflow from it (\`adapters/agents/README.md\`). Leave it as it is."
   fi
   echo

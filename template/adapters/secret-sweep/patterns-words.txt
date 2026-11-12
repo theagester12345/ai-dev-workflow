@@ -1,0 +1,7 @@
+# Credentials written as words: "the admin password is …", `password=…` in a comment. Read by the
+# sweep only, case-insensitively: on every commit they would be noise, and an old leak of this
+# shape is what key-shaped patterns miss. Same format as patterns.txt. The value must hold a digit
+# or a symbol and be at least 6 characters (checked by the sweep), so "the password is required",
+# a placeholder like <your-password> and a reference like ${API_TOKEN} are not reported.
+# password-in-words
+(password|passwd|passphrase|pwd|secret|token|api[ _-]?key)["']?[[:space:]]*(=|:|[[:space:]]is|[[:space:]]was)[[:space:]]*["']?[^[:space:]'"<>{}$]*[0-9!@#%^&*_+=~-][^[:space:]'"<>{}$]*
