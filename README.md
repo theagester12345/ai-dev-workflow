@@ -87,7 +87,7 @@ Two behaviours worth knowing:
 ai-dev-workflow/                  # this repo
 ├── bin/scaffold.sh               # bootstrap / adopt
 ├── bin/apply-updates.sh          # carry template improvements into a scaffolded project
-├── skills/                       # two review procedures that also work on their own (below)
+├── plugins/                      # two review procedures that also work on their own (below)
 ├── test/                         # this repo's own checks (never copied into a project)
 └── template/                     # everything stamped into a project
     ├── WORKFLOW.md               # the shared spine — conventions every side follows
@@ -127,10 +127,10 @@ A scaffolded project gets the same shape, with `AGENTS.md` emitted beside each `
 
 ## Skills
 
-Two of the workflow's review procedures also work on their own, in any git repo, as [Agent Skills](https://agentskills.io) (`SKILL.md`). Each needs only git and a shell.
+Two of the workflow's review procedures also work on their own, in any git repo, as [Agent Skills](https://agentskills.io) (`SKILL.md`). Each needs only git and a shell, and each folder under `plugins/` is also a Claude plugin.
 
-- **[`reviewer-questions`](skills/reviewer-questions/SKILL.md)** — after a change, the agent stops and asks whether you left questions in the code. *collect* gathers every one in the files that change touched as one set; *proceed* runs a guard scan that refuses while any remain.
-- **[`diff-review`](skills/diff-review/SKILL.md)** — on request, opens the diffs of the files a change touched, one at a time, then asks *collect or approve?*. Nothing is committed before *approve*.
+- **[`reviewer-questions`](plugins/reviewer-questions/skills/reviewer-questions/SKILL.md)** — after a change, the agent stops and asks whether you left questions in the code. *collect* gathers every one in the files that change touched as one set; *proceed* runs a guard scan that refuses while any remain.
+- **[`diff-review`](plugins/diff-review/skills/diff-review/SKILL.md)** — on request, opens the diffs of the files a change touched, one at a time, then asks *collect or approve?*. Nothing is committed before *approve*.
 
 ```sh
 npx skills add theagester12345/ai-dev-workflow --skill reviewer-questions

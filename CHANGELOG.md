@@ -3,6 +3,13 @@
 Notable changes to **AI Dev Workflow (Community Edition)**. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); dates are `YYYY-MM-DD`.
 
+## [2026-11-20]
+
+### Changed
+- **The two skills are now Claude plugins as well.** `skills/reviewer-questions/` and
+  `skills/diff-review/` moved to `plugins/<name>/skills/<name>/`; each plugin folder adds a
+  `.claude-plugin/plugin.json` and a README. The skills themselves are unchanged.
+
 ## [2026-11-12]
 
 ### Added

@@ -1,0 +1,11 @@
+{
+  "name": "diff-review",
+  "displayName": "Diff Review",
+  "version": "1.0.0",
+  "description": "On request, opens the diff of each file a change touched, one at a time, with the working file on the right, then asks whether to collect your questions or approve. Nothing is committed before you approve.",
+  "author": {
+    "name": "Peter Agada",
+    "url": "https://github.com/theagester12345/ai-dev-workflow"
+  },
+  "license": "MIT"
+}
