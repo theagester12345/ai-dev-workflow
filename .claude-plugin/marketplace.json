@@ -1,0 +1,22 @@
+{
+  "name": "ai-dev-workflow",
+  "owner": {
+    "name": "Peter Agada",
+    "url": "https://github.com/theagester12345/ai-dev-workflow"
+  },
+  "metadata": {
+    "description": "Two review procedures from AI Dev Workflow, each usable on its own in any git repo."
+  },
+  "plugins": [
+    {
+      "name": "reviewer-questions",
+      "source": "./plugins/reviewer-questions",
+      "category": "code-review"
+    },
+    {
+      "name": "diff-review",
+      "source": "./plugins/diff-review",
+      "category": "code-review"
+    }
+  ]
+}

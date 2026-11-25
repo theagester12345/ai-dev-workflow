@@ -3,6 +3,18 @@
 Notable changes to **AI Dev Workflow (Community Edition)**. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); dates are `YYYY-MM-DD`.
 
+## [2026-11-24]
+
+### Added
+- **This repo is a Claude Code plugin marketplace.** `.claude-plugin/marketplace.json` lists both
+  plugins, so `/plugin marketplace add theagester12345/ai-dev-workflow` then
+  `/plugin install <name>@ai-dev-workflow` installs either one. The README shows both install routes.
+
+### Fixed
+- **Both plugins install again.** Their manifests carried a `displayName` key that Claude Code 2.1.41
+  rejects (*Unrecognized key*), so neither validated nor installed. The key is removed and each plugin
+  is now version 1.0.1.
+
 ## [2026-11-20]
 
 ### Changed

@@ -1,7 +1,6 @@
 {
   "name": "reviewer-questions",
-  "displayName": "Reviewer Questions",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "After a change, the agent stops and asks whether you left questions in the code, then collects every one in the files that change touched as one set, and refuses to go on while any remain.",
   "author": {
     "name": "Peter Agada",
